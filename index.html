@@ -198,6 +198,12 @@ td.wrapc{white-space:normal;min-width:160px}
 .trow button.mbtn[aria-current="true"]{font-weight:600;color:var(--accent)}
 .cmpslots{margin-top:22px}
 
+.period{border-left:4px solid var(--accent);padding:2px 0 2px 14px;margin:14px 0 18px}
+.period.missing{border-left-color:var(--lz-warn)}
+.period .plabel{color:var(--muted);font-size:13px}
+.period .pval{font:700 24px/1.25 Comfortaa,system-ui,sans-serif;color:var(--title)}
+.period .hint{overflow-wrap:anywhere}
+.fn-period{background:var(--lz-soft);color:var(--ink);border-radius:6px;padding:1px 5px;font-weight:600}
 @media (max-width:860px){
   .two{grid-template-columns:1fr}
   .side{transform:translateX(-100%);visibility:hidden;transition:transform .2s,visibility 0s .2s}
@@ -394,6 +400,11 @@ td.wrapc{white-space:normal;min-width:160px}
       <p class="err" id="freeErr" role="alert" hidden></p>
       <section class="panel" id="freePanel" hidden aria-labelledby="h-free">
         <h2 id="h-free">Resumo do arquivo</h2>
+        <div class="period" id="freePeriod">
+          <div class="plabel">Período analisado</div>
+          <div class="pval" id="freePeriodVal"></div>
+          <p class="hint" id="freePeriodSrc"></p>
+        </div>
         <div class="kpis" id="freeKpis" style="margin-top:14px"></div>
         <div class="controls">
           <label class="ctl">Câmbio (R$ por US$) <input type="text" id="freeFx" inputmode="decimal" autocomplete="off" placeholder="0,0000" style="width:120px"></label>
@@ -613,6 +624,8 @@ const CFG={
   superAdmin:'mateusaraujo@lucralize.com.br',
   maxBytes:4*1024*1024
 };
+// visão "Custos por mês" (relatórios no SharePoint + custo do Serpro): desligada por enquanto; o código fica para quando voltar
+const MONTH_VIEW=false;
 const SCOPES=['User.Read','Sites.ReadWrite.All'];
 const TIPOS=['Administrador','Colaborador'];
 const LOGOUT_FLAG='cc_logged_out';
@@ -957,8 +970,8 @@ async function removeUser(email){
 }
 const VIEW_TEXT={
   dash:['Gestão de custos de IA e API','Custo mensal do Claude e do Serpro (Integra Contador, usado no Domínio e no Oneflow) em uma só visão, com comparativo com o mês anterior e o consumo de cada membro do Claude.'],
-  free:['Período livre','Suba um relatório de qualquer período, por exemplo o de 90 dias, para analisar o consumo do Claude. O arquivo é só analisado aqui e não é salvo no SharePoint.'],
-  cmp:['Comparar arquivos','Suba dois relatórios e veja a variação do segundo em relação ao primeiro, no total e por dia. Nada é salvo no SharePoint.'],
+  free:['Período livre','Suba um relatório de qualquer período, por exemplo o de 90 dias. O período analisado é lido do final do nome do arquivo (AAAA-MM-DD-to-AAAA-MM-DD.csv). O arquivo é só analisado aqui e não é salvo.'],
+  cmp:['Comparar arquivos','Suba dois relatórios e veja a variação do segundo em relação ao primeiro, no total e por dia. Nada é salvo.'],
   users:['Usuários','Cadastro de quem pode acessar o dashboard.']
 };
 // única função que decide o que aparece, conforme a tela atual
@@ -981,7 +994,8 @@ function syncView(){
   $('#pageTitle').textContent=VIEW_TEXT[view][0]; $('#pageLead').textContent=VIEW_TEXT[view][1];
 }
 function setView(v){
-  if((v==='users'||v==='free'||v==='cmp')&&!isAdmin()) return;   // só Administrador
+  if(v==='users'&&!isAdmin()) return;   // só Administrador
+  if(v==='dash'&&!MONTH_VIEW) return;
   view=v;
   if(v==='users') openUsers();
   else if(v==='free') renderFree();
@@ -1017,9 +1031,10 @@ async function enterApp(){
   $('#warn').textContent=warnText; $('#warn').hidden=!warnText;
   const adm=SESSION.tipo==='Administrador';
   $('#side').hidden=false; $('#menuBtn').hidden=false;
-  $('#usersBtn').hidden=!adm; $('#navFree').hidden=!adm; $('#navCmp').hidden=!adm;   // só Administrador sobe arquivos e vê Usuários
-  view='dash'; syncView();
-  await loadLatest(true);
+  $('#usersBtn').hidden=!adm;   // só Administrador vê Usuários
+  $('#navDash').hidden=!MONTH_VIEW; $('#navFree').hidden=false; $('#navCmp').hidden=false;
+  if(MONTH_VIEW){ view='dash'; syncView(); await loadLatest(true); }
+  else setView('free');
 }
 function logout(){
   if(!window.confirm('Deseja sair do dashboard?')) return;
@@ -2087,7 +2102,7 @@ function fxDefault(per){
 }
 function setErr(sel,t){ const e=$(sel); e.textContent=t||''; e.hidden=!t; }
 async function readLocal(file,errFn){
-  if(!file||!isAdmin()) return null;
+  if(!file||!SESSION) return null;
   if(file.size>CFG.maxBytes){ errFn('O arquivo tem mais de 4 MB, então não parece um relatório de gastos.'); return null; }
   let text;
   try{ text=await file.text(); }catch(e){ errFn('Não consegui ler o arquivo. Tente exportar de novo e subir outra vez.'); return null; }
@@ -2105,7 +2120,7 @@ function resetLocal(){
   slotUI('A'); slotUI('B');
 }
 const FREE_TITLE='Solte aqui um relatório de qualquer período (.csv)';
-const FREE_SUB='Por exemplo, o de 90 dias. Clique para escolher o arquivo. Ele é só analisado na tela e não é salvo no SharePoint. O período vem do nome do arquivo.';
+const FREE_SUB='Por exemplo, o de 90 dias. Clique para escolher o arquivo. Ele é só analisado na tela e não é salvo. O período analisado vem do final do nome do arquivo.';
 
 /* ---- período livre ---- */
 async function loadFree(file){
@@ -2126,7 +2141,24 @@ function renderFree(){
   if(!has) return;
   applyData(FREE.data,'Arquivo '+FREE.name+', '+perText(FREE.per)+', '+FREE.data.members+' membros.'+(FREE.per&&FREE.per.multi?' O período abrange mais de um mês, por isso não entra no comparativo mensal.':''));
   render();
+  renderFreePeriod();
   renderFreeKpis();
+}
+function renderFreePeriod(){
+  const per=FREE.per, box=$('#freePeriod'), val=$('#freePeriodVal'), srcEl=$('#freePeriodSrc');
+  box.classList.toggle('missing',!per);
+  srcEl.replaceChildren();
+  if(!per){
+    val.textContent='Não identificado';
+    srcEl.append(document.createTextNode('Não encontrei o período no nome do arquivo. O nome precisa terminar com AAAA-MM-DD-to-AAAA-MM-DD.csv (por exemplo, ...-2026-09-01-to-2026-09-30.csv). Sem isso, os valores por dia ficam indisponíveis.'));
+    return;
+  }
+  const f=per.start.split('-').reverse().join('/'), t=per.end.split('-').reverse().join('/');
+  val.textContent='De '+f+' até '+t;
+  const m=/\d{4}-\d{2}-\d{2}-to-\d{4}-\d{2}-\d{2}/.exec(FREE.name);
+  srcEl.append(document.createTextNode(per.days+(per.days===1?' dia':' dias')+', lidos do final do nome do arquivo: '+(m.index>0?'…':'')));
+  const st=h('strong','fn-period',m[0]); srcEl.appendChild(st);
+  srcEl.append(document.createTextNode(FREE.name.slice(m.index+m[0].length)));
 }
 function renderFreeKpis(){
   if(!FREE) return;
@@ -2134,7 +2166,7 @@ function renderFreeKpis(){
   const okFx=fx!=null&&fx>0;
   $('#freeFxHint').textContent=okFx?'':'Informe o câmbio para ver o gasto em reais.';
   kpiRow($('#freeKpis'),[
-    {v:days?fmtInt(days)+(days===1?' dia':' dias'):'—',l:'Período',s:FREE.per?FREE.per.label:'não identificado no nome do arquivo'},
+    {v:days?fmtInt(days)+(days===1?' dia':' dias'):'—',l:'Duração',s:days?'dias corridos, contando o primeiro e o último':'período não identificado'},
     {v:fmtUSD(d.totalNet),l:'Gasto líquido',s:days?(fmtUSD(d.totalNet/days)+' por dia'):''},
     {v:okFx?fmtBRL(d.totalNet*fx):'—',l:'Em reais',s:okFx?((days?fmtBRL(d.totalNet*fx/days)+' por dia, ':'')+'câmbio '+fmtRate(fx)):'informe o câmbio'},
     {v:fmtInt(d.req),l:'Requisições',s:days?(fmtInt(d.req/days)+' por dia'):''},
