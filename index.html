@@ -389,6 +389,10 @@ td.wrapc{white-space:normal;min-width:160px}
     </div>
 
     <section id="freeSec" hidden>
+      <div class="srcline" id="freeSrcline">
+        <label class="ctl" id="freeSelWrap" hidden>Relatório salvo <select id="freeSel" style="max-width:100%"></select></label>
+        <span id="freeSrcText"></span><button class="linkbtn" id="freeRefresh" type="button" hidden>Verificar novo arquivo</button>
+      </div>
       <label class="drop" id="freeDrop">
         <input type="file" id="freeFile" accept=".csv,text/csv">
         <span class="tx">
@@ -508,7 +512,7 @@ td.wrapc{white-space:normal;min-width:160px}
     </div>
     <p class="panel hint" id="noClaude" hidden>Não há relatório do Claude para este mês. Um Administrador pode subir o relatório de gastos do período.</p>
 
-    <p class="foot">O relatório do Claude traz o total do período por membro, produto e modelo, sem quebra por dia; por isso a evolução é mensal. O gasto é o líquido do relatório, em dólar, convertido pelo câmbio informado para o mês, e não inclui a mensalidade dos assentos. Tokens de entrada incluem a leitura de cache. O custo do Serpro é o lançado manualmente em CustosAPIs.xlsx.</p>
+    <p class="foot">O relatório do Claude traz o total do período por membro, produto e modelo, sem quebra por dia. O gasto é o líquido do relatório, em dólar, convertido pelo câmbio informado, e não inclui a mensalidade dos assentos. Tokens de entrada incluem a leitura de cache.</p>
   </main>
 </div>
 </div>
@@ -970,8 +974,8 @@ async function removeUser(email){
 }
 const VIEW_TEXT={
   dash:['Gestão de custos de IA e API','Custo mensal do Claude e do Serpro (Integra Contador, usado no Domínio e no Oneflow) em uma só visão, com comparativo com o mês anterior e o consumo de cada membro do Claude.'],
-  free:['Período livre','Suba um relatório de qualquer período, por exemplo o de 90 dias. O período analisado é lido do final do nome do arquivo (AAAA-MM-DD-to-AAAA-MM-DD.csv). O arquivo é só analisado aqui e não é salvo.'],
-  cmp:['Comparar arquivos','Suba dois relatórios e veja a variação do segundo em relação ao primeiro, no total e por dia. Nada é salvo.'],
+  free:['Período livre','Relatórios de qualquer período, por exemplo o de 90 dias, salvos no SharePoint. O período analisado é lido do final do nome do arquivo (AAAA-MM-DD-to-AAAA-MM-DD.csv). Administradores sobem novos arquivos; todos consultam.'],
+  cmp:['Comparar arquivos','Suba dois relatórios e veja a variação do segundo em relação ao primeiro, no total e por dia. É temporário: os arquivos ficam só nesta tela e nada é salvo.'],
   users:['Usuários','Cadastro de quem pode acessar o dashboard.']
 };
 // única função que decide o que aparece, conforme a tela atual
@@ -984,6 +988,7 @@ function syncView(){
   $('#freeSec').hidden=!free; $('#cmpView').hidden=!cmp;
   $('#claudeSec').hidden=!((dash&&hasMonths&&rep)||(free&&!!FREE));
   $('#noClaude').hidden=!(dash&&hasMonths&&!rep);
+  $('#freeDrop').hidden=!adm;
   $('#resumoSec').hidden=free;   // no período livre o resumo já aparece acima
   $('#drop').hidden=!(dash&&adm);
   $('#srcline').hidden=!(dash&&!!$('#srcText').textContent);
@@ -1034,7 +1039,7 @@ async function enterApp(){
   $('#usersBtn').hidden=!adm;   // só Administrador vê Usuários
   $('#navDash').hidden=!MONTH_VIEW; $('#navFree').hidden=false; $('#navCmp').hidden=false;
   if(MONTH_VIEW){ view='dash'; syncView(); await loadLatest(true); }
-  else setView('free');
+  else { setView('free'); await loadFreeList(true); }
 }
 function logout(){
   if(!window.confirm('Deseja sair do dashboard?')) return;
@@ -2093,7 +2098,7 @@ async function removeCost(c){
 }
 
 /* ---------- Período livre e Comparar arquivos: análise local, nada é salvo no SharePoint ---------- */
-let FREE=null, CMP={A:null,B:null}, cmpMode='total';
+let FREE=null, CMP={A:null,B:null}, cmpMode='total', FREELIST=[], FREE_ID=null, loadingFree=false;
 const nf1=(n)=>nf({maximumFractionDigits:1}).format(n);
 const perText=(per)=>per?(per.label+' ('+per.days+(per.days===1?' dia':' dias')+')'):'período não identificado no nome do arquivo';
 function fxDefault(per){
@@ -2111,7 +2116,8 @@ async function readLocal(file,errFn){
   return {name:file.name,per:periodInfo(file.name),data:d};
 }
 function resetLocal(){
-  FREE=null; CMP={A:null,B:null}; cmpMode='total';
+  FREE=null; FREELIST=[]; FREE_ID=null; CMP={A:null,B:null}; cmpMode='total';
+  $('#freeSel').replaceChildren(); $('#freeSelWrap').hidden=true; $('#freeSrcText').textContent=''; $('#freeRefresh').hidden=true;
   $('#freeFx').value=''; $('#cmpFx').value='';
   setErr('#freeErr',''); setErr('#cmpErr','');
   $('#freePanel').hidden=true; $('#cmpOut').hidden=true;
@@ -2120,24 +2126,112 @@ function resetLocal(){
   slotUI('A'); slotUI('B');
 }
 const FREE_TITLE='Solte aqui um relatório de qualquer período (.csv)';
-const FREE_SUB='Por exemplo, o de 90 dias. Clique para escolher o arquivo. Ele é só analisado na tela e não é salvo. O período analisado vem do final do nome do arquivo.';
+const FREE_NONE='Ainda não há relatório salvo.';
+const FREE_SUB='Por exemplo, o de 90 dias. Clique para escolher o arquivo. Ele é salvo no SharePoint e o período analisado vem do final do nome do arquivo.';
 
 /* ---- período livre ---- */
-async function loadFree(file){
+function setFreeSrc(text,showRefresh){
+  $('#freeSrcText').textContent=text||'';
+  $('#freeRefresh').hidden=!showRefresh;
+}
+function freeSrcText(){
+  const n=FREELIST.length;
+  if(!n) return '';
+  let t=n+(n===1?' relatório salvo no SharePoint.':' relatórios salvos no SharePoint.');
+  if(FREE) t+=' Exibindo '+FREE.name+', enviado em '+fmtDateTime(FREE.item.createdDateTime)+'.';
+  return t;
+}
+function fillFreeSel(){
+  const sel=$('#freeSel'); sel.replaceChildren();
+  FREELIST.forEach((r,i)=>{
+    const o=document.createElement('option'); o.value=r.item.id;
+    o.textContent=(r.per?(r.per.start.split('-').reverse().join('/')+' a '+r.per.end.split('-').reverse().join('/')):'período não identificado')+' · '+r.name+' · enviado em '+fmtDateTime(r.item.createdDateTime)+(i===0?' (mais recente)':'');
+    sel.appendChild(o);
+  });
+  $('#freeSelWrap').hidden=!FREELIST.length;
+}
+// baixa (se preciso) e exibe um relatório salvo
+async function showSaved(r){
+  let d=REPCACHE.get(r.item.id);
+  if(!d){
+    setFreeSrc('Lendo '+r.name+'...',false);
+    d=parseReport(await downloadText(r.item));
+    if(!SESSION) return false;
+    if(d.error){
+      FREE=null; FREE_ID=r.item.id; renderFree();
+      setErr('#freeErr','O arquivo '+r.name+' não é um relatório de gastos válido. '+d.error);
+      return false;
+    }
+    REPCACHE.set(r.item.id,d);
+  }
+  if(!SESSION) return false;
   setErr('#freeErr','');
-  const r=await readLocal(file,(t)=>setErr('#freeErr',t));
-  if(!r||!SESSION||view!=='free') return;
-  FREE=r; $('#freeFx').value=fxDefault(r.per);
+  FREE={name:r.name,per:r.per,data:d,item:r.item}; FREE_ID=r.item.id;
+  $('#freeSel').value=r.item.id;
   state.product='__all'; state.selected=null;
   renderFree(); syncView();
+  return true;
+}
+async function loadFreeList(force,prefer){
+  if(loadingFree||!SESSION) return;
+  loadingFree=true; setErr('#freeErr','');
+  try{
+    setFreeSrc('Buscando os relatórios no SharePoint...',false);
+    let items=[];
+    try{ items=await listReports(); }catch(e){ if(e.status!==404) throw e; }
+    if(!SESSION) return;
+    const now=Date.now();
+    extraItems=extraItems.filter((x)=>now-x.ts<RECENT_MS);
+    extraItems.forEach((x)=>{ if(!items.some((i)=>i.id===x.item.id)) items.push(x.item); });
+    FREELIST=items.map((it)=>{ const nm=stripStamp(it.name); return {item:it,name:nm,per:periodInfo(nm)}; })
+      .sort((a,b)=>(new Date(b.item.createdDateTime)-new Date(a.item.createdDateTime))||b.item.name.localeCompare(a.item.name));
+    fillFreeSel();
+    const pick=FREELIST.find((r)=>r.item.id===(prefer||FREE_ID))||FREELIST[0]||null;
+    if(!pick){
+      FREE=null; FREE_ID=null; renderFree(); syncView();
+      setFreeSrc(isAdmin()?FREE_NONE+' Suba o primeiro para começar.':FREE_NONE+' Peça a um Administrador para subir o primeiro.',true);
+      return;
+    }
+    await showSaved(pick);
+    if(!SESSION) return;
+    const chk=force?'':(' Verificado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.');
+    setFreeSrc(freeSrcText()+chk,true);
+  }catch(e){
+    console.error(e);
+    setErr('#freeErr',friendly(e));
+    setFreeSrc('',true);
+  }finally{ loadingFree=false; }
+}
+async function loadFree(file){
+  setErr('#freeErr','');
+  if(!file||!SESSION||view!=='free') return;
+  if(!isAdmin()){ setErr('#freeErr','Só Administradores podem subir relatórios.'); return; }
+  const r=await readLocal(file,(t)=>setErr('#freeErr',t));
+  if(!r||!SESSION||view!=='free') return;   // arquivo inválido não vai para o SharePoint
+  if(!r.per){ setErr('#freeErr','O nome do arquivo precisa terminar com o período, no formato AAAA-MM-DD-to-AAAA-MM-DD.csv (por exemplo, ...-2026-07-27-to-2026-10-25.csv). É por ele que o dashboard mostra de quando até quando vai o relatório.'); return; }
+  setFreeSrc('Salvando no SharePoint...',false);
+  let saved;
+  try{ saved=await saveReport(file); }
+  catch(e){
+    console.error(e);
+    setErr('#freeErr','O relatório não foi salvo no SharePoint: '+friendly(e)+' Nada foi alterado.');
+    setFreeSrc(freeSrcText(),true);
+    return;
+  }
+  REPCACHE.set(saved.id,r.data);
+  extraItems.push({ts:Date.now(),item:{id:saved.id,name:saved.name||(stamp()+'_'+safeName(file.name)),createdDateTime:saved.createdDateTime||new Date().toISOString(),file:{}}});
+  loadingFree=false;
+  await loadFreeList(true,saved.id);
+  if(!SESSION) return;
+  $('#freeSrcText').textContent='Salvo no SharePoint. '+$('#freeSrcText').textContent;
 }
 function renderFree(){
   state.mode='free';
   const has=!!FREE;
   $('#freePanel').hidden=!has;
   $('#freeDrop').classList.toggle('compact',has);
-  $('#freeTitle').textContent=has?FREE.name:FREE_TITLE;
-  $('#freeSub').textContent=has?(perText(FREE.per)+', '+FREE.data.members+' membros. Clique ou solte outro arquivo para trocar.'):FREE_SUB;
+  $('#freeTitle').textContent=has?'Subir um novo relatório (.csv)':FREE_TITLE;
+  $('#freeSub').textContent=has?'Clique ou solte um arquivo para salvar no SharePoint. O período vem do final do nome do arquivo.':FREE_SUB;
   if(!has) return;
   applyData(FREE.data,'Arquivo '+FREE.name+', '+perText(FREE.per)+', '+FREE.data.members+' membros.'+(FREE.per&&FREE.per.multi?' O período abrange mais de um mês, por isso não entra no comparativo mensal.':''));
   render();
@@ -2359,6 +2453,12 @@ $('#usersBtn').addEventListener('click',()=>setView('users'));
 $('#navDash').addEventListener('click',()=>setView('dash'));
 $('#navFree').addEventListener('click',()=>setView('free'));
 $('#navCmp').addEventListener('click',()=>setView('cmp'));
+$('#freeRefresh').addEventListener('click',()=>loadFreeList(false));
+$('#freeSel').addEventListener('change',async(e)=>{
+  const r=FREELIST.find((x)=>x.item.id===e.target.value); if(!r) return;
+  try{ if(await showSaved(r)) setFreeSrc(freeSrcText(),true); }
+  catch(err){ console.error(err); setErr('#freeErr',friendly(err)); }
+});
 $('#freeFile').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadFree(f); });
 $('#fileA').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadSlot('A',f); });
 $('#fileB').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadSlot('B',f); });
