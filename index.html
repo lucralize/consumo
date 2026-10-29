@@ -2512,8 +2512,8 @@ function renderCmp(){
 /* ---------- Serpro (Integra Contador): consumo em chamadas ---------- */
 let SFREE=null, SLIST=[], SFREE_ID=null, loadingS=false, SCMP={A:null,B:null}, scmpMode='total', sExtra=[];
 const SREPCACHE=new Map();
-const SFREE_TITLE='Solte aqui o relatório do Serpro (.zip ou .csv) e as notas fiscais (.pdf)';
-const SFREE_SUB='Pode ser o .zip do Serpro ou CSVs soltos, detalhado ou agrupado. Os CSVs são salvos no SharePoint e o painel soma todos os arquivos enviados no mesmo dia. O período vem do mês no nome de cada arquivo (AAAA-MM), que no Serpro vai do dia 21 do mês anterior ao dia 20. As notas fiscais (PDF) também são salvas, e delas o painel lê o valor de cada chamada.';
+const SFREE_TITLE='Solte aqui o relatório do Serpro (.zip ou .csv)';
+const SFREE_SUB='Pode ser o .zip do Serpro ou CSVs soltos, detalhado ou agrupado. Os CSVs são salvos no SharePoint e o painel soma todos os arquivos enviados no mesmo dia. O período vem do mês no nome de cada arquivo (AAAA-MM), que no Serpro vai do dia 21 do mês anterior ao dia 20. O valor em reais é calculado sozinho, pelos preços das notas fiscais que já estão no painel.';
 const SFREE_NONE='Ainda não há relatório do Serpro salvo.';
 const brDate=(iso)=>iso.split('-').reverse().join('/');
 const isoDays=(a,b)=>Math.round((Date.UTC(+b.slice(0,4),+b.slice(5,7)-1,+b.slice(8,10))-Date.UTC(+a.slice(0,4),+a.slice(5,7)-1,+a.slice(8,10)))/864e5)+1;
@@ -2779,6 +2779,7 @@ async function downloadBuf(item){
 // uma nota por ciclo: se o mesmo ciclo aparece mais de uma vez, vale a enviada por último
 function rebuildNF(){
   const by=new Map(); NFBAD=[];
+  NF_BUILTIN.forEach((x)=>by.set(x.ref,{k:'',x:Object.assign({},x,{builtin:true})}));
   NFLIST.forEach((r)=>{
     const d=NFCACHE.get(r.item.id); if(!d) return;
     if(d.bad){ NFBAD.push({name:r.name,why:d.bad}); return; }
@@ -2788,6 +2789,16 @@ function rebuildNF(){
   NFS=[...by.values()].map((o)=>o.x).sort((a,b)=>a.ref<b.ref?-1:a.ref>b.ref?1:0);
   NFBY=new Map(NFS.map((x)=>[x.ref,x]));
 }
+// Tabela de preços embutida: itens das notas fiscais do Serpro já recebidas (ciclos 2026-07 a 2026-09).
+// Com ela o painel calcula o custo só com o relatório de consumo. Para um ciclo novo, o custo é estimado
+// por estas faixas até alguém subir a nota (PDF) desse ciclo, que passa a valer no lugar.
+const NFI=(tipo,qty,unit,total)=>({label:'Integra Contador - '+tipo,tipo,key:nfKey(tipo),qty,unit,total});
+const NF_BUILTIN=[
+  {ref:'2026-07',start:'2026-06-21',end:'2026-07-20',total:281.52,warns:[],items:[NFI('Consulta',141,0.24,33.84),NFI('Emissão',360,0.32,115.20),NFI('Declaração',368,0.36,132.48)]},
+  {ref:'2026-08',start:'2026-07-21',end:'2026-08-20',total:292.88,warns:[],items:[NFI('Consulta',181,0.24,43.44),NFI('Emissão',361,0.32,115.52),NFI('Declaração',372,0.36,133.92)]},
+  {ref:'2026-09',start:'2026-08-21',end:'2026-09-20',total:379.75,warns:[],items:[NFI('Consulta',351,0.21,73.71),NFI('Emissão',440,0.32,140.80),NFI('Declaração',459,0.36,165.24)]}
+];
+rebuildNF();
 async function loadNFs(){
   if(!SESSION) return;
   let items=[];
@@ -2889,9 +2900,8 @@ function nfConf(x){
 }
 function renderNF(){
   const adm=isAdmin(), tb=$('#sfNf'), nn=$('#nfNotes'); nn.replaceChildren();
-  $('#nfHint').textContent=NFS.length
-    ?(NFS.length+(NFS.length===1?' nota fiscal salva':' notas fiscais salvas')+' no SharePoint (ciclos '+NFS[0].ref+(NFS.length>1?' a '+NFS[NFS.length-1].ref:'')+'). O valor de cada chamada vem direto das notas: ao subir uma nota nova, o painel recalcula sozinho.')
-    :('Ainda não há notas fiscais do Serpro salvas. '+(adm?'Solte os PDFs das notas na área de cima, junto com os relatórios ou sozinhos, e o painel calcula o valor de cada chamada.':'Peça a um Administrador para subir as notas.'));
+  const up=NFS.filter((x)=>!x.builtin), bt=NFS.filter((x)=>x.builtin);
+  $('#nfHint').textContent='O painel já traz os preços das notas de '+bt.map((x)=>x.ref).join(', ')+', então o custo sai só do relatório de consumo. Ciclos mais novos, sem nota, ficam estimados. Se quiser o valor exato de um ciclo, suba a nota (PDF) dele na área de cima (opcional)'+(up.length?'. Notas enviadas e lidas do SharePoint: '+up.length+' ('+up.map((x)=>x.ref).join(', ')+'), que valem no lugar das embutidas.':'.');
   const notes=[];
   NFBAD.forEach((b)=>notes.push('Não consegui ler a nota '+b.name+': '+b.why+'.'));
   if(!NFS.length){ tb.replaceChildren(); nn.hidden=!notes.length; notes.forEach((t)=>nn.appendChild(h('li',null,t))); return; }
@@ -2996,7 +3006,7 @@ function sKpis(box,r,cs){
     {v:hasErr?fmtInt(d.errors):'—',l:'Com erro',s:hasErr?'resposta diferente de 200':'precisa do arquivo detalhado de todos os ciclos'},
     {v:hasDetail?fmtInt(d.bySvc.size):fmtInt(d.byType.size),l:hasDetail?'Serviços usados':'Tipos de chamada',s:hasDetail?(fmtInt(d.byType.size)+' tipos'):''}
   ];
-  const cost=[{v:cs?brl(cs.total):'—',l:'Custo no período',s:cs?(cs.withNF+' de '+cs.n+(cs.n===1?' ciclo':' ciclos')+' com nota fiscal'+(cs.est?('; '+brl(cs.est)+' estimado'):'')):'suba as notas fiscais (PDF) para ver o valor'}];
+  const cost=[{v:cs?brl(cs.total):'—',l:'Custo no período',s:cs?(cs.withNF+' de '+cs.n+(cs.n===1?' ciclo':' ciclos')+' com nota fiscal'+(cs.est?('; '+brl(cs.est)+' estimado'):'')):'sem preços para calcular'}];
   if(cs&&d.total) cost.push({v:brlCall(cs.total/d.total),l:'Custo por chamada',s:'média do período'});
   items.splice(2,0,...cost);
   kpiRow(box,items,'');
@@ -3009,8 +3019,8 @@ function renderSFree(){
   $('#sfCycSec').hidden=!(has&&d.cycles.length>1);
   $('#sfDaySec').hidden=!allDet; $('#sfSvcSec').hidden=!hasDetail;
   $('#sfDrop').classList.toggle('compact',has);
-  $('#sfTitle').textContent=has?'Subir relatórios (.zip ou .csv) ou notas fiscais (.pdf)':SFREE_TITLE;
-  $('#sfSub').textContent=has?'Clique ou solte arquivos para salvar no SharePoint. O painel soma os relatórios enviados no mesmo dia e lê o valor das chamadas nas notas fiscais.':SFREE_SUB;
+  $('#sfTitle').textContent=has?'Subir relatórios (.zip ou .csv)':SFREE_TITLE;
+  $('#sfSub').textContent=has?'Clique ou solte arquivos para salvar no SharePoint. O painel soma os relatórios enviados no mesmo dia e calcula o custo sozinho.':SFREE_SUB;
   if(!has) return;
   const r=SFREE, per=r.per;
   periodBanner(per,r.name,null,$('#sfPeriodVal'),$('#sfPeriodSrc'),$('#sfPeriod'));
@@ -3167,7 +3177,7 @@ async function loadSFree(files){
 }
 function resetSerpro(){
   SFREE=null; SLIST=[]; SFREE_ID=null; SCMP={A:null,B:null}; scmpMode='total'; sExtra=[]; SREPCACHE.clear();
-  NFS=[]; NFBY=new Map(); NFLIST=[]; NFBAD=[]; nfExtra=[]; NFCACHE.clear(); setErr('#nfErr',''); $('#nfMsg').textContent=''; $('#nfHint').textContent='';
+  NFLIST=[]; nfExtra=[]; NFCACHE.clear(); rebuildNF(); setErr('#nfErr',''); $('#nfMsg').textContent=''; $('#nfHint').textContent='';
   setErr('#sfErr',''); setErr('#scmpErr',''); setSFSrc('',false);
   $('#sfPanel').hidden=true; $('#sfTypeSec').hidden=true; $('#sfCycSec').hidden=true; $('#sfDaySec').hidden=true; $('#sfSvcSec').hidden=true; $('#scmpOut').hidden=true;
   $('#sfDrop').classList.remove('compact');
@@ -3303,12 +3313,12 @@ function renderHome(){
       {v:fmtInt(d.total),l:'Chamadas',s:fmtInt(d.total/per.effDays)+' por dia'},
       {v:d.errors==null?'—':fmtInt(d.errors),l:'Com erro',s:d.errors==null?'precisa do detalhado':'resposta diferente de 200'},
       {v:bt?bt[0]:'—',l:'Tipo mais usado',s:bt?(fmtInt(bt[1].n)+' chamadas ('+fmtPct(bt[1].n/d.total)+')'):''},
-      {v:cs?brl(cs.total):'—',l:'Custo no período',s:cs?(cs.est?('inclui '+brl(cs.est)+' estimado'):'conforme as notas fiscais'):'suba as notas fiscais em Serpro, Período livre'}
+      {v:cs?brl(cs.total):'—',l:'Custo no período',s:cs?(cs.est?('inclui '+brl(cs.est)+' estimado'):'conforme as notas fiscais'):'sem preços para calcular'}
     ],'');
     p.appendChild(h('p','hint',capS(sfWhat(SFREE))+'.'));
   }));
   const diff=FREE&&FREE.per&&SFREE&&(FREE.per.start!==SFREE.per.start||FREE.per.end!==SFREE.per.end);
-  $('#homeNote').textContent='O Claude é medido em dólar e o Serpro em reais (valor das chamadas lido das notas fiscais), por isso os dois não são somados. Cada painel mostra o relatório mais recente salvo no SharePoint.'+(diff?' Atenção: os períodos dos dois relatórios são diferentes.':'');
+  $('#homeNote').textContent='O Claude é medido em dólar e o Serpro em reais (custo calculado pelos preços das notas fiscais), por isso os dois não são somados. Cada painel mostra o relatório mais recente salvo no SharePoint.'+(diff?' Atenção: os períodos dos dois relatórios são diferentes.':'');
   $('#homeSrc').textContent=busy?'Buscando os relatórios no SharePoint...':'';
 }
 
