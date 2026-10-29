@@ -354,6 +354,10 @@ td.wrapc{white-space:normal;min-width:160px}
       <ul class="reads" id="sfNotes" hidden></ul>
       <div class="kpis" id="sfKpis" style="margin-top:14px"></div>
     </section>
+    <section class="panel" id="sfCycSec" hidden aria-labelledby="h-sfc">
+      <h2 id="h-sfc">Por ciclo</h2>
+      <div class="scroll"><table id="sfCyc"></table></div>
+    </section>
     <section class="panel" id="sfDaySec" hidden aria-labelledby="h-sfd">
       <h2 id="h-sfd">Chamadas por dia</h2>
       <div id="sfDays"></div>
@@ -373,12 +377,12 @@ td.wrapc{white-space:normal;min-width:160px}
   <section id="scmpView" hidden>
     <div class="two cmpslots">
       <label class="drop slot" id="sslotA">
-        <input type="file" id="sfileA" accept=".csv,text/csv">
+        <input type="file" id="sfileA" accept=".csv,.zip,text/csv,application/zip">
         <span class="tx"><span class="drop-title" id="sslotATitle"></span><span class="drop-sub" id="sslotASub"></span></span>
         <span class="swap">Trocar</span>
       </label>
       <label class="drop slot" id="sslotB">
-        <input type="file" id="sfileB" accept=".csv,text/csv">
+        <input type="file" id="sfileB" accept=".csv,.zip,text/csv,application/zip">
         <span class="tx"><span class="drop-title" id="sslotBTitle"></span><span class="drop-sub" id="sslotBSub"></span></span>
         <span class="swap">Trocar</span>
       </label>
@@ -1077,8 +1081,8 @@ async function removeUser(email){
 const VIEW_TEXT={
   dash:['Gestão de custos de IA e API','Custo mensal do Claude e do Serpro (Integra Contador, usado no Domínio e no Oneflow) em uma só visão, com comparativo com o mês anterior e o consumo de cada membro do Claude.'],
   home:['Visão geral','Resumo do relatório mais recente do Claude (gasto em dólar) e do Serpro (chamadas), lado a lado. Cada um usa uma unidade diferente, por isso os dois não são somados.'],
-  sfree:['Serpro: período livre','Mostra sempre o relatório mais recente do Serpro (Integra Contador) salvo no SharePoint. O período é o ciclo do Serpro, lido do mês no nome do arquivo (AAAA-MM): do dia 21 do mês anterior ao dia 20. Administradores sobem novos arquivos.'],
-  scmp:['Serpro: comparar arquivos','Suba dois relatórios do Serpro e veja a variação de B contra A, no total e por dia. É temporário: os arquivos ficam só nesta tela e nada é salvo.'],
+  sfree:['Serpro: período livre','Mostra sempre o relatório mais recente do Serpro (Integra Contador) salvo no SharePoint, somando todos os arquivos enviados no mesmo dia. O período é o ciclo do Serpro, lido do mês no nome do arquivo (AAAA-MM): do dia 21 do mês anterior ao dia 20. Administradores sobem novos arquivos.'],
+  scmp:['Serpro: comparar arquivos','Suba dois relatórios do Serpro (CSV ou zip) e veja a variação de B contra A, no total e por dia. É temporário: os arquivos ficam só nesta tela e nada é salvo.'],
   free:['Claude: período livre','Mostra sempre o relatório mais recente salvo no SharePoint, de qualquer período, por exemplo o de 90 dias. O período analisado é lido do final do nome do arquivo (AAAA-MM-DD-to-AAAA-MM-DD.csv). Administradores sobem novos arquivos.'],
   cmp:['Claude: comparar arquivos','Suba dois relatórios e veja a variação do segundo em relação ao primeiro, no total e por dia. É temporário: os arquivos ficam só nesta tela e nada é salvo.'],
   users:['Usuários','Cadastro de quem pode acessar o dashboard.']
@@ -2496,8 +2500,8 @@ function renderCmp(){
 /* ---------- Serpro (Integra Contador): consumo em chamadas ---------- */
 let SFREE=null, SLIST=[], SFREE_ID=null, loadingS=false, SCMP={A:null,B:null}, scmpMode='total', sExtra=[];
 const SREPCACHE=new Map();
-const SFREE_TITLE='Solte aqui um relatório do Serpro (.csv)';
-const SFREE_SUB='Pode ser o .zip do Serpro (com todos os meses) ou CSVs soltos, detalhado ou agrupado. Tudo é salvo no SharePoint. O período vem do mês no nome de cada arquivo (AAAA-MM), que no Serpro vai do dia 21 do mês anterior ao dia 20.';
+const SFREE_TITLE='Solte aqui o relatório do Serpro (.zip ou .csv)';
+const SFREE_SUB='Pode ser o .zip do Serpro ou CSVs soltos, detalhado ou agrupado. Os CSVs são salvos no SharePoint e o painel soma todos os arquivos enviados no mesmo dia. O período vem do mês no nome de cada arquivo (AAAA-MM), que no Serpro vai do dia 21 do mês anterior ao dia 20.';
 const SFREE_NONE='Ainda não há relatório do Serpro salvo.';
 const brDate=(iso)=>iso.split('-').reverse().join('/');
 const isoDays=(a,b)=>Math.round((Date.UTC(+b.slice(0,4),+b.slice(5,7)-1,+b.slice(8,10))-Date.UTC(+a.slice(0,4),+a.slice(5,7)-1,+a.slice(8,10)))/864e5)+1;
@@ -2520,7 +2524,7 @@ function sPeriod(name){
 const sPerText=(p)=>p.label+' ('+p.days+(p.days===1?' dia':' dias')+')';
 
 function parseSerpro(text,name){
-  if(/\.zip$/i.test(name)||text.slice(0,2)==='PK') return {error:'Esse arquivo é um .zip. Aqui use um CSV de dentro dele; o .zip só funciona em Período livre.'};
+  if(/\.zip$/i.test(name)||text.slice(0,2)==='PK') return {error:'Esse arquivo parece ser um .zip e não um CSV do Serpro.'};
   text=text.replace(/^﻿/,'');
   const lines=text.split(/\r?\n/);
   const head=(lines[0]||'').trim().toLowerCase();
@@ -2566,16 +2570,66 @@ function parseSerpro(text,name){
   }
   return {error:'Este arquivo não parece ser um relatório do Serpro. Use o CSV "detalhado" (colunas DATA, CNPJ/CPF, URL, RESPONSE_CODE...) ou o "agrupado" (colunas URL, TOTAL).'};
 }
+const capS=(t)=>t.charAt(0).toUpperCase()+t.slice(1);
+const localDay=(iso)=>{ const d=new Date(iso), p=(n)=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); };
+const tokNext=(t)=>{ const y=+t.slice(0,4), m=+t.slice(5,7); return m===12?((y+1)+'-01'):(y+'-'+String(m+1).padStart(2,'0')); };
+// valida um texto de relatório; devolve {name,text,per,data} ou {name,why}
+function checkS(name,text){
+  const d=parseSerpro(text,name);
+  if(d.error) return {name,why:d.error};
+  const per=sPeriod(name);
+  if(!per) return {name,why:'o nome não traz o mês (AAAA-MM antes de "agrupado" ou "detalhado")'};
+  return {name,text,per,data:d};
+}
+// junta vários arquivos (ciclos) em um relatório só. Em cada ciclo vale o detalhado (senão o agrupado) mais recente.
+function combineS(entries,label){
+  const by=new Map(), key=(e)=>String(e.key||'');
+  entries.forEach((e)=>{
+    let o=by.get(e.per.tok); if(!o){ o={tok:e.per.tok,det:null,agr:null}; by.set(e.per.tok,o); }
+    const slot=e.data.kind==='detalhado'?'det':'agr';
+    if(!o[slot]||key(e)>=key(o[slot])) o[slot]=e;
+  });
+  const ch=[...by.values()].sort((a,b)=>a.tok<b.tok?-1:a.tok>b.tok?1:0).map((o)=>({tok:o.tok,e:o.det||o.agr,other:o.det&&o.agr?o.agr:null}));
+  const out={kind:'',byType:new Map(),bySvc:null,byDay:null,total:0,errors:0,unreadable:0,dups:0,other:0,first:null,last:null,cycles:[],checks:[]};
+  const allDet=ch.every((c)=>c.e.data.kind==='detalhado'), anyDet=ch.some((c)=>c.e.data.kind==='detalhado');
+  out.kind=allDet?'detalhado':(anyDet?'misto':'agrupado');
+  if(anyDet){ out.bySvc=new Map(); out.byDay=new Map(); }
+  ch.forEach((c)=>{
+    const d=c.e.data;
+    out.total+=d.total; out.unreadable+=d.unreadable; out.dups+=d.dups; out.other+=d.other;
+    if(d.errors!=null) out.errors+=d.errors;
+    d.byType.forEach((v,k)=>{ let o=out.byType.get(k); if(!o){ o={n:0,err:0}; out.byType.set(k,o); } o.n+=v.n; if(v.err!=null) o.err+=v.err; });
+    if(d.bySvc) d.bySvc.forEach((v,k)=>{ let o=out.bySvc.get(k); if(!o){ o={n:0,err:0,tipo:v.tipo}; out.bySvc.set(k,o); } o.n+=v.n; o.err+=v.err; });
+    if(d.byDay) d.byDay.forEach((v,k)=>{ let o=out.byDay.get(k); if(!o){ o={n:0,err:0}; out.byDay.set(k,o); } o.n+=v.n; o.err+=v.err; });
+    if(d.first&&(!out.first||d.first<out.first)) out.first=d.first;
+    if(d.last&&(!out.last||d.last>out.last)) out.last=d.last;
+    out.cycles.push({tok:c.tok,per:c.e.per,kind:d.kind,total:d.total,errors:d.errors,name:c.e.name});
+    if(c.other&&c.other.data.total!==d.total) out.checks.push('Ciclo '+c.tok+': o detalhado tem '+fmtInt(d.total)+' chamadas e o agrupado tem '+fmtInt(c.other.data.total)+'. Foi usado o detalhado.');
+  });
+  if(!allDet){ out.errors=null; out.byType.forEach((o)=>{ o.err=null; }); }
+  const miss=[]; for(let t=ch[0].tok; t<ch[ch.length-1].tok; t=tokNext(t)) if(!by.has(t)) miss.push(t);
+  if(miss.length) out.checks.push('Faltam os ciclos '+miss.join(', ')+' entre o primeiro e o último arquivo.');
+  if(out.kind==='misto') out.checks.push('Os ciclos '+ch.filter((c)=>c.e.data.kind!=='detalhado').map((c)=>c.tok).join(', ')+' só têm o arquivo agrupado: por serviço e o total com erro consideram só os ciclos com arquivo detalhado.');
+  const f=ch[0].e.per, l=ch[ch.length-1].e.per;
+  let per;
+  if(ch.length===1) per=f;
+  else{
+    const today=todayISO(); let effEnd=l.end>today?today:l.end; if(effEnd<f.start) effEnd=f.start;
+    per={start:f.start,end:l.end,source:'ciclos',tokA:ch[0].tok,tokB:ch[ch.length-1].tok,count:ch.length,days:isoDays(f.start,l.end),effDays:isoDays(f.start,effEnd),partial:l.end>today,label:brDate(f.start)+' a '+brDate(l.end)};
+  }
+  return {name:label||(ch.length===1?ch[0].e.name:(ch.length+' ciclos ('+per.tokA+' a '+per.tokB+')')),per,data:out,files:entries.length,bad:[]};
+}
 async function readS(file,errFn){
   if(!file||!SESSION) return null;
-  if(file.size>CFG.maxBytes){ errFn('O arquivo tem mais de 4 MB, então não parece um relatório do Serpro.'); return null; }
-  let text;
-  try{ text=await file.text(); }catch(e){ errFn('Não consegui ler o arquivo. Tente exportar de novo e subir outra vez.'); return null; }
-  const d=parseSerpro(text,file.name);
-  if(d.error){ errFn(d.error); return null; }
-  const per=sPeriod(file.name);
-  if(!per){ errFn('Não consegui identificar o mês no nome do arquivo. O nome precisa ter AAAA-MM antes de "agrupado" ou "detalhado" (por exemplo, relatorio-...-2026-10-detalhado-...csv).'); return null; }
-  return {name:file.name,per,data:d};
+  const zip=/\.zip$/i.test(file.name);
+  if(file.size>(zip?10*1024*1024:CFG.maxBytes)){ errFn('O arquivo é grande demais para ser um relatório do Serpro.'); return null; }
+  let list;
+  try{ list=zip?await unzipCsvs(file):[{name:file.name,text:await file.text()}]; }
+  catch(e){ errFn(zip?(e.message||'Não consegui ler o .zip.'):'Não consegui ler o arquivo. Tente exportar de novo e subir outra vez.'); return null; }
+  const entries=[], bad=[];
+  list.forEach((c)=>{ const r=checkS(c.name,c.text); if(r.why) bad.push(r); else entries.push({name:r.name,per:r.per,data:r.data}); });
+  if(!entries.length){ errFn(bad.length===1?capS(bad[0].why):('Nenhum arquivo do Serpro válido foi encontrado. '+bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; '))); return null; }
+  const rep=combineS(entries,zip?file.name:undefined); rep.bad=bad; return rep;
 }
 
 /* ---- ler .zip no navegador (sem biblioteca): central directory + DecompressionStream ---- */
@@ -2661,7 +2715,11 @@ function periodBanner(per,name,labelEl,valEl,srcEl,box){
   valEl.textContent='De '+brDate(per.start)+' até '+brDate(per.end);
   srcEl.replaceChildren();
   const n=per.days+(per.days===1?' dia':' dias');
-  if(per.source==='nome'&&name&&per.idx>=0){
+  if(per.source==='ciclos'){
+    srcEl.append(document.createTextNode(n+', '+per.count+' ciclos do Serpro ('));
+    srcEl.appendChild(h('strong','fn-period',per.tokA+' a '+per.tokB));
+    srcEl.append(document.createTextNode('), lidos do nome dos arquivos. Cada ciclo vai do dia '+(SERPRO_CORTE+1)+' do mês anterior ao dia '+SERPRO_CORTE+'.'));
+  }else if(per.source==='nome'&&name&&per.idx>=0){
     srcEl.append(document.createTextNode(n+', ciclo do Serpro (do dia '+(SERPRO_CORTE+1)+' do mês anterior ao dia '+SERPRO_CORTE+') do mês no nome do arquivo: '+(per.idx>0?'…':'')));
     srcEl.appendChild(h('strong','fn-period',per.tok));
     srcEl.append(document.createTextNode(name.slice(per.idx+per.tok.length)));
@@ -2670,10 +2728,15 @@ function periodBanner(per,name,labelEl,valEl,srcEl,box){
 
 /* ---- Serpro: período livre (salvo no SharePoint) ---- */
 function setSFSrc(text,showRefresh){ $('#sfSrcText').textContent=text||''; $('#sfRefresh').hidden=!showRefresh; }
+function sfWhat(r){
+  if(!r) return '';
+  if(r.files>1) return 'os '+r.files+' arquivos enviados em '+brDate(localDay(r.item.createdDateTime))+' (ciclos '+r.per.tokA+' a '+r.per.tokB+')';
+  return r.name+', enviado em '+fmtDateTime(r.item.createdDateTime);
+}
 function sfSrcText(){
   const n=SLIST.length; if(!n) return '';
-  let t=n+(n===1?' relatório do Serpro salvo no SharePoint.':' relatórios do Serpro salvos no SharePoint.');
-  if(SFREE) t+=' Exibindo '+SFREE.name+', enviado em '+fmtDateTime(SFREE.item.createdDateTime)+'.';
+  let t=n+(n===1?' arquivo do Serpro salvo no SharePoint.':' arquivos do Serpro salvos no SharePoint.');
+  if(SFREE) t+=' Exibindo '+sfWhat(SFREE)+'.';
   return t;
 }
 function sNotes(d,per,kind){
@@ -2682,64 +2745,82 @@ function sNotes(d,per,kind){
   if(d.unreadable) n.push(fmtInt(d.unreadable)+(d.unreadable===1?' linha estava cortada ou ilegível e foi ignorada.':' linhas estavam cortadas ou ilegíveis e foram ignoradas.'));
   if(d.dups) n.push(fmtInt(d.dups)+(d.dups===1?' linha repetida (idêntica) foi contada uma vez só.':' linhas repetidas (idênticas) foram contadas uma vez só.'));
   if(d.other) n.push(fmtInt(d.other)+(d.other===1?' chamada fora do período, que o arquivo traz junto, ficou de fora.':' chamadas fora do período, que o arquivo traz junto, ficaram de fora.'));
+  (d.checks||[]).forEach((t)=>n.push(t));
   if(per.partial) n.push('Ciclo em andamento: a média por dia considera os '+per.effDays+' dias até hoje.');
   return n;
 }
 function sKpis(box,r){
-  const d=r.data, per=r.per;
-  const det=d.kind==='detalhado';
+  const d=r.data, per=r.per, hasErr=d.errors!=null, hasDetail=!!d.bySvc;
   const items=[
-    {v:per.days+(per.days===1?' dia':' dias'),l:'Duração',s:per.partial?('até hoje: '+per.effDays+' dias'):'dias corridos, contando o primeiro e o último'},
+    {v:per.days+(per.days===1?' dia':' dias'),l:'Duração',s:per.partial?('até hoje: '+per.effDays+' dias'):(per.source==='ciclos'?(per.count+' ciclos seguidos'):'dias corridos, contando o primeiro e o último')},
     {v:fmtInt(d.total),l:'Chamadas',s:fmtInt(d.total/per.effDays)+' por dia'},
-    {v:det?fmtInt(d.total-d.errors):'—',l:'Com sucesso',s:det?(d.total?nf({maximumFractionDigits:1}).format((d.total-d.errors)/d.total*100)+'% das chamadas (resposta 200)':''):'não informado no arquivo agrupado'},
-    {v:det?fmtInt(d.errors):'—',l:'Com erro',s:det?'resposta diferente de 200':'não informado no arquivo agrupado'},
-    {v:det?fmtInt(d.bySvc.size):fmtInt(d.byType.size),l:det?'Serviços usados':'Tipos de chamada',s:det?(fmtInt(d.byType.size)+' tipos'):''}
+    {v:hasErr?fmtInt(d.total-d.errors):'—',l:'Com sucesso',s:hasErr?(d.total?nf({maximumFractionDigits:1}).format((d.total-d.errors)/d.total*100)+'% das chamadas (resposta 200)':''):'precisa do arquivo detalhado de todos os ciclos'},
+    {v:hasErr?fmtInt(d.errors):'—',l:'Com erro',s:hasErr?'resposta diferente de 200':'precisa do arquivo detalhado de todos os ciclos'},
+    {v:hasDetail?fmtInt(d.bySvc.size):fmtInt(d.byType.size),l:hasDetail?'Serviços usados':'Tipos de chamada',s:hasDetail?(fmtInt(d.byType.size)+' tipos'):''}
   ];
   kpiRow(box,items,'');
 }
 function renderSFree(){
-  const has=!!SFREE;
+  const has=!!SFREE, d=has?SFREE.data:null;
+  const allDet=has&&d.kind==='detalhado', hasDetail=has&&!!d.bySvc, hasErr=has&&d.errors!=null;
   $('#sfPanel').hidden=!has; $('#sfTypeSec').hidden=!has;
-  $('#sfDaySec').hidden=!(has&&SFREE.data.kind==='detalhado'); $('#sfSvcSec').hidden=!(has&&SFREE.data.kind==='detalhado');
+  $('#sfCycSec').hidden=!(has&&d.cycles.length>1);
+  $('#sfDaySec').hidden=!allDet; $('#sfSvcSec').hidden=!hasDetail;
   $('#sfDrop').classList.toggle('compact',has);
-  $('#sfTitle').textContent=has?'Subir um novo relatório (.csv)':SFREE_TITLE;
-  $('#sfSub').textContent=has?'Clique ou solte um arquivo para salvar no SharePoint. O período vem do mês no nome do arquivo (ciclo do dia 21 ao dia 20).':SFREE_SUB;
+  $('#sfTitle').textContent=has?'Subir um novo relatório (.zip ou .csv)':SFREE_TITLE;
+  $('#sfSub').textContent=has?'Clique ou solte um arquivo para salvar no SharePoint. O painel soma todos os arquivos enviados no mesmo dia.':SFREE_SUB;
   if(!has) return;
-  const r=SFREE, d=r.data, per=r.per, det=d.kind==='detalhado';
+  const r=SFREE, per=r.per;
   periodBanner(per,r.name,null,$('#sfPeriodVal'),$('#sfPeriodSrc'),$('#sfPeriod'));
-  if(det&&d.first) $('#sfPeriodSrc').appendChild(document.createTextNode(' Chamadas registradas de '+brDate(d.first)+' a '+brDate(d.last)+'.'));
-  const nl=$('#sfNotes'); nl.replaceChildren(); const notes=sNotes(d,per); notes.forEach((t)=>nl.appendChild(h('li',null,t))); nl.hidden=!notes.length;
+  if(allDet&&d.cycles.length===1&&d.first) $('#sfPeriodSrc').appendChild(document.createTextNode(' Chamadas registradas de '+brDate(d.first)+' a '+brDate(d.last)+'.'));
+  const nl=$('#sfNotes'); nl.replaceChildren(); const notes=sNotes(d,per);
+  if(r.bad&&r.bad.length) notes.push(r.bad.length+(r.bad.length===1?' arquivo do mesmo dia foi ignorado':' arquivos do mesmo dia foram ignorados')+' ('+r.bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; ')+(r.bad.length>3?'; ...':'')+').');
+  notes.forEach((t)=>nl.appendChild(h('li',null,t))); nl.hidden=!notes.length;
   sKpis($('#sfKpis'),r);
   const tot=d.total;
   sTable($('#sfType'),[{t:'Tipo'},{t:'Chamadas',n:1},{t:'% do total',n:1},{t:'Por dia',n:1},{t:'Com erro',n:1}],
     sorted(d.byType,(o)=>o.n).map((e)=>[e[0],fmtInt(e[1].n),fmtPct(e[1].n/tot),nf1(e[1].n/per.effDays),e[1].err==null?'—':fmtInt(e[1].err)]),
-    ['Total',fmtInt(tot),'100%',nf1(tot/per.effDays),det?fmtInt(d.errors):'—']);
-  if(!det) return;
+    ['Total',fmtInt(tot),'100%',nf1(tot/per.effDays),hasErr?fmtInt(d.errors):'—']);
+  if(d.cycles.length>1){
+    sTable($('#sfCyc'),[{t:'Ciclo'},{t:'Período'},{t:'Arquivo'},{t:'Chamadas',n:1},{t:'Por dia',n:1},{t:'Com erro',n:1}],
+      d.cycles.map((c)=>[c.tok,c.per.label,c.kind,fmtInt(c.total),nf1(c.total/c.per.effDays),c.errors==null?'—':fmtInt(c.errors)]),
+      ['Total','','',fmtInt(tot),nf1(tot/per.effDays),hasErr?fmtInt(d.errors):'—']);
+  }
+  if(!hasDetail) return;
+  let st=0; d.bySvc.forEach((v)=>{ st+=v.n; });
   sTable($('#sfSvc'),[{t:'Serviço'},{t:'Tipo'},{t:'Chamadas',n:1},{t:'% do total',n:1},{t:'Com erro',n:1}],
-    sorted(d.bySvc,(o)=>o.n).map((e)=>[e[0],e[1].tipo,fmtInt(e[1].n),fmtPct(e[1].n/tot),fmtInt(e[1].err)]),
-    ['Total','',fmtInt(tot),'100%',fmtInt(d.errors)]);
+    sorted(d.bySvc,(o)=>o.n).map((e)=>[e[0],e[1].tipo,fmtInt(e[1].n),fmtPct(e[1].n/st),hasErr?fmtInt(e[1].err):'—']),
+    ['Total','',fmtInt(st),'100%',hasErr?fmtInt(d.errors):'—']);
+  if(!allDet) return;
   dayChart($('#sfDays'),r);
   sTable($('#sfTop'),[{t:'Dia'},{t:'Chamadas',n:1},{t:'Com erro',n:1}],
     sorted(d.byDay,(o)=>o.n).slice(0,5).map((e)=>[brDate(e[0]),fmtInt(e[1].n),fmtInt(e[1].err)]));
 }
-async function showSavedS(r){
-  let d=SREPCACHE.get(r.item.id);
-  if(!d){
-    setSFSrc('Lendo '+r.name+'...',false);
-    d=parseSerpro(await downloadText(r.item),r.name);
-    if(!SESSION) return false;
-    if(d.error){
-      SFREE=null; SFREE_ID=r.item.id; renderSFree();
-      setErr('#sfErr','O arquivo '+r.name+' não é um relatório do Serpro válido. '+d.error);
-      return false;
-    }
-    SREPCACHE.set(r.item.id,d);
-  }
+// junta todos os arquivos criados no mesmo dia do mais recente
+async function showSavedS(batch){
+  const need=batch.filter((r)=>!SREPCACHE.has(r.item.id)), bad=[];
+  if(need.length) setSFSrc('Lendo '+need.length+(need.length===1?' arquivo':' arquivos')+' do Serpro...',false);
+  await pool(need,3,async(r)=>{
+    try{ const d=parseSerpro(await downloadText(r.item),r.name); if(d.error) bad.push({name:r.name,why:d.error}); else SREPCACHE.set(r.item.id,d); }
+    catch(e){ bad.push({name:r.name,why:friendly(e)}); }
+  });
   if(!SESSION) return false;
-  const per=sPeriod(r.name);
-  if(!per){ SFREE=null; setErr('#sfErr','Não consegui identificar o mês no nome de '+r.name+'.'); renderSFree(); return false; }
+  const entries=[];
+  batch.forEach((r)=>{
+    const d=SREPCACHE.get(r.item.id); if(!d) return;
+    const per=sPeriod(r.name);
+    if(!per){ bad.push({name:r.name,why:'o nome não traz o mês'}); return; }
+    entries.push({name:r.name,per,data:d,key:r.item.createdDateTime+'|'+r.item.name});
+  });
+  if(!entries.length){
+    SFREE=null; SFREE_ID=null; renderSFree(); syncView();
+    setErr('#sfErr','Nenhum arquivo do Serpro válido entre os enviados em '+brDate(localDay(batch[0].item.createdDateTime))+'. '+bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; '));
+    return false;
+  }
   setErr('#sfErr','');
-  SFREE={name:r.name,per,data:d,item:r.item}; SFREE_ID=r.item.id;
+  const rep=combineS(entries);
+  rep.bad=bad; rep.item=batch[0].item;   // batch[0] é o mais recente
+  SFREE=rep; SFREE_ID=batch[0].item.id;
   renderSFree(); syncView();
   return true;
 }
@@ -2757,12 +2838,13 @@ async function loadSerproList(force){
     SLIST=items.map((it)=>({item:it,name:stripStamp(it.name)}))
       .sort((a,b)=>(new Date(b.item.createdDateTime)-new Date(a.item.createdDateTime))||b.item.name.localeCompare(a.item.name));
     const pick=SLIST[0]||null;   // sempre o mais recente
+    const day=pick?localDay(pick.item.createdDateTime):'', batch=pick?SLIST.filter((r)=>localDay(r.item.createdDateTime)===day):[];
     if(!pick){
       SFREE=null; SFREE_ID=null; renderSFree(); syncView();
       setSFSrc(isAdmin()?SFREE_NONE+' Suba o primeiro para começar.':SFREE_NONE+' Peça a um Administrador para subir o primeiro.',true);
       return;
     }
-    await showSavedS(pick);
+    await showSavedS(batch);
     if(!SESSION) return;
     const chk=force?'':(' Verificado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.');
     setSFSrc(sfSrcText()+chk,true);
@@ -2772,15 +2854,6 @@ async function loadSerproList(force){
     setSFSrc('',true);
   }finally{ loadingS=false; if(view==='home'&&SESSION) renderHome(); }
 }
-// valida um texto de relatório; devolve {name,text,per,data} ou {name,why}
-function checkS(name,text){
-  const d=parseSerpro(text,name);
-  if(d.error) return {name,why:d.error};
-  const per=sPeriod(name);
-  if(!per) return {name,why:'o nome não traz o mês (AAAA-MM antes de "agrupado" ou "detalhado")'};
-  return {name,text,per,data:d};
-}
-const byteLen=(t)=>new TextEncoder().encode(t).length;
 async function loadSFree(files){
   setErr('#sfErr','');
   files=(files||[]).filter(Boolean);
@@ -2790,8 +2863,9 @@ async function loadSFree(files){
   setSFSrc('Lendo os arquivos...',false);
   try{
     for(const f of files){
-      if(f.size>(/\.zip$/i.test(f.name)?10*1024*1024:CFG.maxBytes)){ bad.push({name:f.name,why:'arquivo grande demais para ser um relatório do Serpro'}); continue; }
-      if(/\.zip$/i.test(f.name)){ (await unzipCsvs(f)).forEach((x)=>cands.push(x)); }
+      const zip=/\.zip$/i.test(f.name);
+      if(f.size>(zip?10*1024*1024:CFG.maxBytes)){ bad.push({name:f.name,why:'arquivo grande demais para ser um relatório do Serpro'}); continue; }
+      if(zip){ (await unzipCsvs(f)).forEach((x)=>cands.push(x)); }
       else{
         let text; try{ text=await f.text(); }catch(e){ bad.push({name:f.name,why:'não consegui ler o arquivo'}); continue; }
         cands.push({name:f.name,text});
@@ -2800,23 +2874,20 @@ async function loadSFree(files){
   }catch(e){ setErr('#sfErr',e.message||'Não consegui ler o arquivo.'); setSFSrc(sfSrcText(),true); return; }
   if(!SESSION||view!=='sfree') return;
   const ok=[]; cands.forEach((c)=>{ const r=checkS(c.name,c.text); if(r.why) bad.push(r); else ok.push(r); });
-  // do mês mais antigo para o mais novo, agrupado antes do detalhado: o último a ser salvo é o detalhado do mês mais recente
-  ok.sort((x,y)=>(x.per.tok<y.per.tok?-1:x.per.tok>y.per.tok?1:0)||((x.data.kind==='agrupado'?0:1)-(y.data.kind==='agrupado'?0:1))||x.name.localeCompare(y.name));
-  const have=new Map(SLIST.map((r)=>[r.name,r.item.size]));
-  // o último do lote é sempre salvo (vira o exibido); os demais só se ainda não estiverem salvos com o mesmo tamanho
-  const todo=ok.filter((r,i)=>i===ok.length-1||have.get(r.name)!==byteLen(r.text)), already=ok.length-todo.length;
   if(!ok.length){
-    setErr('#sfErr',bad.length===1?bad[0].why.charAt(0).toUpperCase()+bad[0].why.slice(1):'Nenhum arquivo do Serpro válido foi encontrado. '+bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; '));
+    setErr('#sfErr',bad.length===1?capS(bad[0].why):'Nenhum arquivo do Serpro válido foi encontrado. '+bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; '));
     setSFSrc(sfSrcText(),true); return;
   }
+  // do ciclo mais antigo para o mais novo, agrupado antes do detalhado
+  ok.sort((x,y)=>(x.per.tok<y.per.tok?-1:x.per.tok>y.per.tok?1:0)||((x.data.kind==='agrupado'?0:1)-(y.data.kind==='agrupado'?0:1))||x.name.localeCompare(y.name));
   let saved=0, failMsg='';
-  for(const r of todo){
-    setSFSrc('Salvando no SharePoint... '+(saved+1)+' de '+todo.length,false);
+  for(const r of ok){
+    setSFSrc('Salvando no SharePoint... '+(saved+1)+' de '+ok.length,false);
     try{
       const file=new File([r.text],r.name,{type:'text/csv'});
       const res=await saveReport(file,CFG.serpro);
       SREPCACHE.set(res.id,r.data);
-      sExtra.push({ts:Date.now(),item:{id:res.id,name:res.name||(stamp()+'_'+safeName(r.name)),createdDateTime:res.createdDateTime||new Date().toISOString(),size:byteLen(r.text),file:{}}});
+      sExtra.push({ts:Date.now(),item:{id:res.id,name:res.name||(stamp()+'_'+safeName(r.name)),createdDateTime:res.createdDateTime||new Date().toISOString(),file:{}}});
       saved++;
     }catch(e){ console.error(e); failMsg='Não consegui salvar '+r.name+' no SharePoint: '+friendly(e); break; }
     if(!SESSION) return;
@@ -2825,8 +2896,7 @@ async function loadSFree(files){
   if(saved) await loadSerproList(true);
   if(!SESSION) return;
   const parts=[];
-  if(saved) parts.push(saved===1?'1 relatório salvo no SharePoint.':saved+' relatórios salvos no SharePoint.');
-  if(already) parts.push(already===1?'1 já estava salvo e foi pulado.':already+' já estavam salvos e foram pulados.');
+  if(saved) parts.push(saved===1?'1 arquivo salvo no SharePoint.':saved+' arquivos salvos no SharePoint.');
   if(bad.length) parts.push(bad.length+(bad.length===1?' arquivo ignorado':' arquivos ignorados')+' ('+bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; ')+(bad.length>3?'; ...':'')+').');
   if(failMsg) setErr('#sfErr',failMsg+(saved?' Os anteriores foram salvos.':' Nada foi alterado.'));
   else if(bad.length) setErr('#sfErr',parts.join(' '));
@@ -2835,10 +2905,10 @@ async function loadSFree(files){
 function resetSerpro(){
   SFREE=null; SLIST=[]; SFREE_ID=null; SCMP={A:null,B:null}; scmpMode='total'; sExtra=[]; SREPCACHE.clear();
   setErr('#sfErr',''); setErr('#scmpErr',''); setSFSrc('',false);
-  $('#sfPanel').hidden=true; $('#sfTypeSec').hidden=true; $('#sfDaySec').hidden=true; $('#sfSvcSec').hidden=true; $('#scmpOut').hidden=true;
+  $('#sfPanel').hidden=true; $('#sfTypeSec').hidden=true; $('#sfCycSec').hidden=true; $('#sfDaySec').hidden=true; $('#sfSvcSec').hidden=true; $('#scmpOut').hidden=true;
   $('#sfDrop').classList.remove('compact');
   $('#sfTitle').textContent=SFREE_TITLE; $('#sfSub').textContent=SFREE_SUB;
-  ['#sfKpis','#sfType','#sfSvc','#sfDays','#sfTop','#sGTbl','#sTTbl','#sSTbl','#homeGrid'].forEach((s)=>{ const el=$(s); if(el) el.replaceChildren(); });
+  ['#sfKpis','#sfType','#sfCyc','#sfSvc','#sfDays','#sfTop','#sGTbl','#sTTbl','#sSTbl','#homeGrid'].forEach((s)=>{ const el=$(s); if(el) el.replaceChildren(); });
   $('#homeSrc').textContent=''; $('#homeNote').textContent='';
   sSlotUI('A'); sSlotUI('B');
 }
@@ -2854,7 +2924,7 @@ function sSlotUI(which){
   const r=SCMP[which], el=$('#sslot'+which);
   el.classList.toggle('compact',!!r);
   $('#sslot'+which+'Title').textContent=r?r.name:('Arquivo '+which+(which==='A'?' (base)':' (comparado)'));
-  $('#sslot'+which+'Sub').textContent=r?(sPerText(r.per)+', '+fmtInt(r.data.total)+' chamadas. Clique ou solte outro arquivo para trocar.'):'Solte aqui ou clique para escolher o relatório do Serpro (.csv).';
+  $('#sslot'+which+'Sub').textContent=r?(sPerText(r.per)+', '+fmtInt(r.data.total)+' chamadas'+(r.files>1?(', '+r.files+' arquivos'):'')+'. Clique ou solte outro arquivo para trocar.'):'Solte aqui ou clique para escolher o relatório do Serpro (.zip ou .csv).';
 }
 function sCmpTable(tbl,head,groups,fa,fb,fq){
   const list=groups.slice().sort((x,y)=>((y.b?y.b.n:0)*fb-(x.b?x.b.n:0)*fb)||((y.a?y.a.n:0)*fa-(x.a?x.a.n:0)*fa)||String(x.key).localeCompare(String(y.key),'pt-BR'));
@@ -2879,8 +2949,8 @@ function renderSCmp(){
   const ov=overlapDays(A.per,B.per);
   if(ov>0) notes.push('Os períodos se sobrepõem em '+ov+(ov===1?' dia':' dias')+': parte das chamadas aparece nos dois arquivos.');
   if(A.per.partial||B.per.partial) notes.push('Há ciclo em andamento: os valores por dia consideram só os dias até hoje.');
-  if(a.kind!==b.kind) notes.push('Um arquivo é agrupado e o outro detalhado: só dá para comparar os totais por tipo.');
-  else if(a.kind==='agrupado') notes.push('Arquivos agrupados: só dá para comparar os totais por tipo. Com os detalhados, o comparativo também mostra por serviço.');
+  if(!(a.bySvc&&b.bySvc)) notes.push('Algum dos lados não tem arquivo detalhado: só dá para comparar os totais por tipo. Com os detalhados, o comparativo também mostra por serviço.');
+  ['A','B'].forEach((w)=>{ const r=w==='A'?A:B; r.data.checks.forEach((t)=>notes.push('Arquivo '+w+': '+t)); if(r.bad&&r.bad.length) notes.push('Arquivo '+w+': '+r.bad.length+(r.bad.length===1?' arquivo do zip foi ignorado':' arquivos do zip foram ignorados')+' ('+r.bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; ')+').'); });
   const wn=$('#scmpNotes'); wn.replaceChildren(); notes.forEach((t)=>wn.appendChild(h('li',null,t))); wn.hidden=!notes.length;
 
   const mb=$('#scmpMode'); mb.replaceChildren();
@@ -2910,7 +2980,7 @@ function renderSCmp(){
   g.appendChild(tb);
 
   sCmpTable($('#sTTbl'),'Tipo',sGroups(a.byType,b.byType),fa,fb,fq);
-  const both=a.kind==='detalhado'&&b.kind==='detalhado';
+  const both=!!(a.bySvc&&b.bySvc);
   $('#sSvcSec').hidden=!both;
   if(both) sCmpTable($('#sSTbl'),'Serviço',sGroups(a.bySvc,b.bySvc),fa,fb,fq);
 }
@@ -2961,11 +3031,11 @@ function renderHome(){
     const bt=sorted(d.byType,(o)=>o.n)[0];
     kpiRow(k,[
       {v:fmtInt(d.total),l:'Chamadas',s:fmtInt(d.total/per.effDays)+' por dia'},
-      {v:d.errors==null?'—':fmtInt(d.errors),l:'Com erro',s:d.errors==null?'não informado no agrupado':'resposta diferente de 200'},
+      {v:d.errors==null?'—':fmtInt(d.errors),l:'Com erro',s:d.errors==null?'precisa do detalhado':'resposta diferente de 200'},
       {v:bt?bt[0]:'—',l:'Tipo mais usado',s:bt?(fmtInt(bt[1].n)+' chamadas ('+fmtPct(bt[1].n/d.total)+')'):''},
       {v:d.bySvc?fmtInt(d.bySvc.size):fmtInt(d.byType.size),l:d.bySvc?'Serviços usados':'Tipos de chamada',s:''}
     ],'');
-    p.appendChild(h('p','hint',SFREE.name+', enviado em '+fmtDateTime(SFREE.item.createdDateTime)+'.'));
+    p.appendChild(h('p','hint',capS(sfWhat(SFREE))+'.'));
   }));
   const diff=FREE&&FREE.per&&SFREE&&(FREE.per.start!==SFREE.per.start||FREE.per.end!==SFREE.per.end);
   $('#homeNote').textContent='O Claude é medido em dólar e o Serpro em chamadas, por isso os dois não são somados. Cada painel mostra o relatório mais recente salvo no SharePoint.'+(diff?' Atenção: os períodos dos dois relatórios são diferentes.':'');
