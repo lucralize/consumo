@@ -339,7 +339,7 @@ td.wrapc{white-space:normal;min-width:160px}
   <section id="sfreeView" hidden>
     <div class="srcline"><span id="sfSrcText"></span><button class="linkbtn" id="sfRefresh" type="button" hidden>Verificar novo arquivo</button></div>
     <label class="drop" id="sfDrop">
-      <input type="file" id="sfFile" accept=".csv,.zip,text/csv,application/zip" multiple>
+      <input type="file" id="sfFile" accept=".csv,.zip,.pdf,text/csv,application/zip,application/pdf" multiple>
       <span class="tx"><span class="drop-title" id="sfTitle"></span><span class="drop-sub" id="sfSub"></span></span>
       <span class="swap">Trocar arquivo</span>
     </label>
@@ -357,6 +357,7 @@ td.wrapc{white-space:normal;min-width:160px}
     <section class="panel" id="sfCycSec" hidden aria-labelledby="h-sfc">
       <h2 id="h-sfc">Por ciclo</h2>
       <div class="scroll"><table id="sfCyc"></table></div>
+      <p class="hint" id="sfCycNote" hidden></p>
     </section>
     <section class="panel" id="sfDaySec" hidden aria-labelledby="h-sfd">
       <h2 id="h-sfd">Chamadas por dia</h2>
@@ -367,10 +368,19 @@ td.wrapc{white-space:normal;min-width:160px}
     <section class="panel" id="sfTypeSec" hidden aria-labelledby="h-sft">
       <h2 id="h-sft">Por tipo de chamada</h2>
       <div class="scroll"><table id="sfType"></table></div>
+      <p class="hint" id="sfTypeNote" hidden></p>
     </section>
     <section class="panel" id="sfSvcSec" hidden aria-labelledby="h-sfs">
       <h2 id="h-sfs">Por serviço</h2>
       <div class="scroll"><table id="sfSvc"></table></div>
+    </section>
+    <section class="panel" id="sfNfSec" aria-labelledby="h-nf">
+      <h2 id="h-nf">Notas fiscais e valor da chamada</h2>
+      <p class="hint" id="nfHint"></p>
+      <p class="err" id="nfErr" role="alert" hidden></p>
+      <p class="hint" id="nfMsg"></p>
+      <div class="scroll"><table id="sfNf"></table></div>
+      <ul class="reads" id="nfNotes" hidden></ul>
     </section>
   </section>
 
@@ -726,13 +736,15 @@ const CFG={
   base:'PI - PROCESSOS E INFRA/AUTOMAÇÕES CLAUDE/consumo-claude',
   reports:'Relatorios',            // subpasta onde os CSVs do Claude ficam salvos
   serpro:'RelatoriosSerpro',       // subpasta dos relatórios do Serpro
+  serproNF:'NotasSerpro',          // subpasta das notas fiscais (PDF) do Serpro
   usersFile:'ConsumoClaude.xlsx',  // planilha de usuários, na pasta base
   table:'tblUsuarios',
   costsFile:'CustosAPIs.xlsx',     // planilha de custos de API (Serpro) e câmbio, na pasta base
   costTable:'tblCustos',
   cambioTable:'tblCambio',
   superAdmin:'mateusaraujo@lucralize.com.br',
-  maxBytes:4*1024*1024
+  maxBytes:4*1024*1024,
+  maxPdf:2*1024*1024
 };
 // visão "Custos por mês" (relatórios no SharePoint + custo do Serpro): desligada por enquanto; o código fica para quando voltar
 const MONTH_VIEW=false;
@@ -1080,7 +1092,7 @@ async function removeUser(email){
 }
 const VIEW_TEXT={
   dash:['Gestão de custos de IA e API','Custo mensal do Claude e do Serpro (Integra Contador, usado no Domínio e no Oneflow) em uma só visão, com comparativo com o mês anterior e o consumo de cada membro do Claude.'],
-  home:['Visão geral','Resumo do relatório mais recente do Claude (gasto em dólar) e do Serpro (chamadas), lado a lado. Cada um usa uma unidade diferente, por isso os dois não são somados.'],
+  home:['Visão geral','Resumo do relatório mais recente do Claude (gasto em dólar) e do Serpro (chamadas e valor em reais), lado a lado. O Claude é em dólar e o Serpro em reais, por isso os dois não são somados.'],
   sfree:['Serpro: período livre','Mostra sempre o relatório mais recente do Serpro (Integra Contador) salvo no SharePoint, somando todos os arquivos enviados no mesmo dia. O período é o ciclo do Serpro, lido do mês no nome do arquivo (AAAA-MM): do dia 21 do mês anterior ao dia 20. Administradores sobem novos arquivos.'],
   scmp:['Serpro: comparar arquivos','Suba dois relatórios do Serpro (CSV ou zip) e veja a variação de B contra A, no total e por dia. É temporário: os arquivos ficam só nesta tela e nada é salvo.'],
   free:['Claude: período livre','Mostra sempre o relatório mais recente salvo no SharePoint, de qualquer período, por exemplo o de 90 dias. O período analisado é lido do final do nome do arquivo (AAAA-MM-DD-to-AAAA-MM-DD.csv). Administradores sobem novos arquivos.'],
@@ -1188,12 +1200,12 @@ function setSrc(text,showRefresh){
   $('#refresh').hidden=!showRefresh;
   $('#srcline').hidden=!text||view!=='dash';
 }
-async function listReports(folder){
+async function listReports(folder,ext){
   let url='/drives/'+CFG.driveId+'/root:/'+pathUrl(CFG.base+'/'+(folder||CFG.reports))+':/children?$select=id,name,size,createdDateTime,file&$top=200';
   const out=[]; let guard=0;
   while(url&&guard++<20){
     const r=await graph('GET',url);
-    (r.value||[]).forEach((i)=>{ if(i.file&&/\.csv$/i.test(i.name)) out.push(i); });
+    (r.value||[]).forEach((i)=>{ if(i.file&&(ext||/\.csv$/i).test(i.name)) out.push(i); });
     url=r['@odata.nextLink']?r['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0',''):null;
   }
   return out;
@@ -1315,11 +1327,11 @@ async function ensureReportsFolder(folder){
 }
 // nome novo a cada envio (data e hora na frente): cada relatório vira um arquivo com "Criado em" próprio.
 // Sobrescrever um arquivo de mesmo nome manteria o Criado em original e o "mais recente" ficaria errado.
-async function saveReport(file,folder){
+async function saveReport(file,folder,type){
   folder=folder||CFG.reports;
   const name=stamp()+'_'+safeName(file.name);
   const path='/drives/'+CFG.driveId+'/root:/'+pathUrl(CFG.base+'/'+folder+'/'+name)+':/content?@microsoft.graph.conflictBehavior=rename';
-  const put=()=>graphRaw('PUT',path,file,{'Content-Type':'text/csv'});
+  const put=()=>graphRaw('PUT',path,file,{'Content-Type':type||'text/csv'});
   let res;
   try{ res=await put(); }
   catch(e){
@@ -2500,8 +2512,8 @@ function renderCmp(){
 /* ---------- Serpro (Integra Contador): consumo em chamadas ---------- */
 let SFREE=null, SLIST=[], SFREE_ID=null, loadingS=false, SCMP={A:null,B:null}, scmpMode='total', sExtra=[];
 const SREPCACHE=new Map();
-const SFREE_TITLE='Solte aqui o relatório do Serpro (.zip ou .csv)';
-const SFREE_SUB='Pode ser o .zip do Serpro ou CSVs soltos, detalhado ou agrupado. Os CSVs são salvos no SharePoint e o painel soma todos os arquivos enviados no mesmo dia. O período vem do mês no nome de cada arquivo (AAAA-MM), que no Serpro vai do dia 21 do mês anterior ao dia 20.';
+const SFREE_TITLE='Solte aqui o relatório do Serpro (.zip ou .csv) e as notas fiscais (.pdf)';
+const SFREE_SUB='Pode ser o .zip do Serpro ou CSVs soltos, detalhado ou agrupado. Os CSVs são salvos no SharePoint e o painel soma todos os arquivos enviados no mesmo dia. O período vem do mês no nome de cada arquivo (AAAA-MM), que no Serpro vai do dia 21 do mês anterior ao dia 20. As notas fiscais (PDF) também são salvas, e delas o painel lê o valor de cada chamada.';
 const SFREE_NONE='Ainda não há relatório do Serpro salvo.';
 const brDate=(iso)=>iso.split('-').reverse().join('/');
 const isoDays=(a,b)=>Math.round((Date.UTC(+b.slice(0,4),+b.slice(5,7)-1,+b.slice(8,10))-Date.UTC(+a.slice(0,4),+a.slice(5,7)-1,+a.slice(8,10)))/864e5)+1;
@@ -2603,7 +2615,7 @@ function combineS(entries,label){
     if(d.byDay) d.byDay.forEach((v,k)=>{ let o=out.byDay.get(k); if(!o){ o={n:0,err:0}; out.byDay.set(k,o); } o.n+=v.n; o.err+=v.err; });
     if(d.first&&(!out.first||d.first<out.first)) out.first=d.first;
     if(d.last&&(!out.last||d.last>out.last)) out.last=d.last;
-    out.cycles.push({tok:c.tok,per:c.e.per,kind:d.kind,total:d.total,errors:d.errors,name:c.e.name});
+    out.cycles.push({tok:c.tok,per:c.e.per,kind:d.kind,total:d.total,errors:d.errors,name:c.e.name,byType:d.byType});
     if(c.other&&c.other.data.total!==d.total) out.checks.push('Ciclo '+c.tok+': o detalhado tem '+fmtInt(d.total)+' chamadas e o agrupado tem '+fmtInt(c.other.data.total)+'. Foi usado o detalhado.');
   });
   if(!allDet){ out.errors=null; out.byType.forEach((o)=>{ o.err=null; }); }
@@ -2633,8 +2645,8 @@ async function readS(file,errFn){
 }
 
 /* ---- ler .zip no navegador (sem biblioteca): central directory + DecompressionStream ---- */
-async function inflateRaw(bytes,limit){
-  const ds=new DecompressionStream('deflate-raw'), rd=ds.readable.getReader(), chunks=[]; let n=0;
+async function inflateRaw(bytes,limit,fmt){
+  const ds=new DecompressionStream(fmt||'deflate-raw'), rd=ds.readable.getReader(), chunks=[]; let n=0;
   const reading=(async()=>{ for(;;){ const r=await rd.read(); if(r.done) break; n+=r.value.length; if(n>limit){ try{ rd.cancel(); }catch(e){} throw new Error('TOOBIG'); } chunks.push(r.value); } })();
   const wr=ds.writable.getWriter();
   wr.write(bytes).catch(()=>{}); wr.close().catch(()=>{});
@@ -2675,6 +2687,232 @@ async function unzipCsvs(file){
   }
   if(!out.length) throw new Error('Não encontrei nenhum CSV dentro do .zip.');
   return out;
+}
+
+/* ---- Notas fiscais do Serpro: quanto custa cada chamada ---- */
+let NFS=[], NFBY=new Map(), NFLIST=[], NFBAD=[], nfExtra=[];
+const NFCACHE=new Map();
+const isPdf=(f)=>/\.pdf$/i.test((f&&f.name)||'');
+const brl=(n)=>'R$ '+nf({minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+const brlUnit=(n)=>'R$ '+nf({minimumFractionDigits:2,maximumFractionDigits:4}).format(n);
+const brlCall=(n)=>'R$ '+nf({minimumFractionDigits:3,maximumFractionDigits:3}).format(n);
+const cents=(n)=>Math.round(n*100)/100;
+const parseBRL=(s)=>{ const v=parseFloat(String(s).replace(/\./g,'').replace(',','.')); return isFinite(v)?v:NaN; };   // "33,84" ou ",24"
+// a nota diz "Consulta/Emissão/Declaração" e o relatório "Consultar/Emitir/Declarar": as duas formas viram a mesma chave
+const nfKey=(s)=>{
+  const n=String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+  if(/^consult/.test(n)) return 'consulta';
+  if(/^emi[st]/.test(n)) return 'emissao';
+  if(/^declar/.test(n)) return 'declaracao';
+  return n.slice(0,4);
+};
+// texto do PDF sem biblioteca: abre os streams (zlib) e junta as strings dos operadores Tj/TJ. A nota do Serpro usa fontes simples (WinAnsi).
+const pdfUnesc=(s)=>s.replace(/\\(\r\n|\n|\r|[0-7]{1,3}|[\s\S])/g,(m,c)=>{
+  if(c==='\n'||c==='\r\n'||c==='\r') return '';
+  if(/^[0-7]+$/.test(c)) return String.fromCharCode(parseInt(c,8)&255);
+  return ({n:'\n',r:'\r',t:'\t',b:'\b',f:'\f'})[c]||c;
+});
+async function pdfText(buf){
+  const u8=new Uint8Array(buf);
+  if(u8.length<8||String.fromCharCode(u8[0],u8[1],u8[2],u8[3],u8[4])!=='%PDF-') throw new Error('NOPDF');
+  const dec=new TextDecoder('windows-1252'), lat=dec.decode(u8);
+  if(/\/Encrypt\b/.test(lat)) throw new Error('ENC');
+  const parts=[]; let pos=0, count=0;
+  for(;;){
+    const a=lat.indexOf('stream',pos); if(a<0) break;
+    if(lat.slice(Math.max(0,a-3),a)==='end'){ pos=a+6; continue; }
+    let s=a+6; if(lat[s]==='\r') s++; if(lat[s]==='\n') s++;
+    const e=lat.indexOf('endstream',s); if(e<0) break;
+    pos=e+9; if(++count>300) break;
+    const raw=u8.subarray(s,e), lens=[];
+    if(raw.length>1&&raw[raw.length-2]===13&&raw[raw.length-1]===10) lens.push(raw.length-2);
+    if(raw.length&&(raw[raw.length-1]===10||raw[raw.length-1]===13)) lens.push(raw.length-1);
+    lens.push(raw.length);
+    let out=null;
+    for(const L of lens){ try{ out=await inflateRaw(raw.subarray(0,L),8*1024*1024,'deflate'); break; }catch(err){ /* tenta o próximo corte */ } }
+    const t=out?dec.decode(out):dec.decode(raw);
+    if(!/\bBT\b/.test(t)) continue;
+    const re=/\[((?:\\[\s\S]|[^\]\\])*)\]\s*TJ|\(((?:\\[\s\S]|[^\\()])*)\)\s*Tj/g; let m;
+    while((m=re.exec(t))){
+      if(m[2]!=null) parts.push(pdfUnesc(m[2]));
+      else{ let o='', q; const sr=/\(((?:\\[\s\S]|[^\\()])*)\)/g; while((q=sr.exec(m[1]))) o+=pdfUnesc(q[1]); parts.push(o); }
+    }
+  }
+  return parts.join('\n');
+}
+// lê uma nota fiscal do Serpro: itens (tipo, quantidade, preço unitário, valor), ciclo e total
+async function parseNF(buf,name){
+  let text;
+  try{ text=await pdfText(buf); }
+  catch(e){ return {error:e&&e.message==='ENC'?'o PDF tem senha':(e&&e.message==='NOPDF'?'não é um PDF':'não consegui ler este PDF')}; }
+  const items=[], seen=new Set(), warns=[];
+  const re=/([^\n(]*?)\s*\(Qtd\.:\s*([\d.]+)\s+Vlr Unt:\s*R\$\s*([\d.]*,\d+)\s+R\$\s*([\d.]*,\d+)\s*\)/g; let m;
+  while((m=re.exec(text))){
+    const label=m[1].trim(), tipo=label.split(/\s+-\s+/).pop().trim()||label;
+    const qty=parseInt(m[2].replace(/\./g,''),10), unit=parseBRL(m[3]), total=parseBRL(m[4]);
+    if(!(qty>0)||!isFinite(unit)||!isFinite(total)||!tipo) continue;
+    const k=tipo+'|'+qty+'|'+unit+'|'+total; if(seen.has(k)) continue; seen.add(k);
+    if(Math.abs(cents(qty*unit)-total)>0.011) warns.push(tipo+': '+fmtInt(qty)+' × '+brlUnit(unit)+' não bate com '+brl(total)+' (valeu o da nota)');
+    items.push({label,tipo,key:nfKey(tipo),qty,unit,total});
+  }
+  if(!items.length) return {error:'não parece uma nota fiscal do Serpro (não achei as linhas com "Qtd." e "Vlr Unt")'};
+  const pm=/Per[ií]odo de apura[cç][aã]o\s+(\d{2})\/(\d{2})\/(\d{4})\s+[àa]\s+(\d{2})\/(\d{2})\/(\d{4})/i.exec(text);
+  const rm=/M[eê]s de Refer[eê]ncia:\s*(\d{2})\/(\d{4})/i.exec(text);
+  const start=pm?(pm[3]+'-'+pm[2]+'-'+pm[1]):null, end=pm?(pm[6]+'-'+pm[5]+'-'+pm[4]):null;
+  const ref=rm?(rm[2]+'-'+rm[1]):(end?end.slice(0,7):null);
+  if(!ref) return {error:'não achei o mês de referência da nota'};
+  const sum=cents(items.reduce((s,i)=>s+i.total,0));
+  return {ref,start:start||'',end:end||'',items,total:sum,warns};
+}
+async function downloadBuf(item){
+  const path='/drives/'+CFG.driveId+'/items/'+item.id;
+  try{ const res=await graphRaw('GET',path+'/content'); return await res.arrayBuffer(); }
+  catch(e){
+    if(!(e instanceof TypeError)) throw e;
+    const it=await graph('GET',path), url=it['@microsoft.graph.downloadUrl'];
+    if(!url) throw e;
+    const r=await fetch(url,{cache:'no-store'});
+    if(!r.ok) throw await httpErr(r,'GET','downloadUrl');
+    return r.arrayBuffer();
+  }
+}
+// uma nota por ciclo: se o mesmo ciclo aparece mais de uma vez, vale a enviada por último
+function rebuildNF(){
+  const by=new Map(); NFBAD=[];
+  NFLIST.forEach((r)=>{
+    const d=NFCACHE.get(r.item.id); if(!d) return;
+    if(d.bad){ NFBAD.push({name:r.name,why:d.bad}); return; }
+    const k=r.item.createdDateTime+'|'+r.item.name, cur=by.get(d.ref);
+    if(!cur||k>cur.k) by.set(d.ref,{k,x:Object.assign({},d,{file:r.name,item:r.item})});
+  });
+  NFS=[...by.values()].map((o)=>o.x).sort((a,b)=>a.ref<b.ref?-1:a.ref>b.ref?1:0);
+  NFBY=new Map(NFS.map((x)=>[x.ref,x]));
+}
+async function loadNFs(){
+  if(!SESSION) return;
+  let items=[];
+  try{ items=await listReports(CFG.serproNF,/\.pdf$/i); }
+  catch(e){ if(e.status!==404){ console.error(e); setErr('#nfErr','Não consegui ler as notas fiscais no SharePoint: '+friendly(e)); return; } }
+  if(!SESSION) return;
+  const now=Date.now();
+  nfExtra=nfExtra.filter((x)=>now-x.ts<RECENT_MS);
+  nfExtra.forEach((x)=>{ if(!items.some((i)=>i.id===x.item.id)) items.push(x.item); });
+  NFLIST=items.map((it)=>({item:it,name:stripStamp(it.name)}));
+  const need=NFLIST.filter((r)=>!NFCACHE.has(r.item.id)); let netFail=null;
+  await pool(need,3,async(r)=>{
+    try{
+      const d=await parseNF(await downloadBuf(r.item),r.name);
+      NFCACHE.set(r.item.id,d.error?{bad:d.error}:d);
+    }catch(e){ netFail=e; }
+  });
+  if(!SESSION) return;
+  setErr('#nfErr',netFail?('Não consegui baixar alguma nota fiscal: '+friendly(netFail)):'');
+  rebuildNF();
+}
+async function loadNFFiles(files){
+  setErr('#nfErr',''); $('#nfMsg').textContent='';
+  const ok=[], bad=[];
+  $('#nfMsg').textContent='Lendo as notas fiscais...';
+  for(const f of files){
+    if(f.size>CFG.maxPdf){ bad.push({name:f.name,why:'arquivo grande demais para ser uma nota fiscal'}); continue; }
+    let d;
+    try{ d=await parseNF(await f.arrayBuffer(),f.name); }catch(e){ d={error:'não consegui ler o arquivo'}; }
+    if(d.error) bad.push({name:f.name,why:d.error}); else ok.push({f,d});
+  }
+  if(!SESSION) return;
+  let saved=0, fail='';
+  for(const o of ok){
+    $('#nfMsg').textContent='Salvando no SharePoint... '+(saved+1)+' de '+ok.length;
+    try{
+      const res=await saveReport(o.f,CFG.serproNF,'application/pdf');
+      NFCACHE.set(res.id,o.d);
+      nfExtra.push({ts:Date.now(),item:{id:res.id,name:res.name||(stamp()+'_'+safeName(o.f.name)),createdDateTime:res.createdDateTime||new Date().toISOString(),file:{}}});
+      saved++;
+    }catch(e){ console.error(e); fail='Não consegui salvar '+o.f.name+' no SharePoint: '+friendly(e); break; }
+    if(!SESSION) return;
+  }
+  await loadNFs();
+  if(!SESSION) return;
+  renderSFree();
+  const parts=[];
+  if(saved) parts.push(saved===1?'1 nota fiscal salva no SharePoint.':saved+' notas fiscais salvas no SharePoint.');
+  if(bad.length) parts.push(bad.length+(bad.length===1?' arquivo ignorado':' arquivos ignorados')+' ('+bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; ')+(bad.length>3?'; ...':'')+').');
+  ok.forEach((o)=>o.d.warns.forEach((w)=>parts.push('Nota '+o.d.ref+': '+w+'.')));
+  $('#nfMsg').textContent=parts.join(' ');
+  if(fail) setErr('#nfErr',fail+(saved?' As anteriores foram salvas.':' Nada foi alterado.'));
+  if(view==='home'&&SESSION) renderHome();
+}
+// preço estimado de um ciclo sem nota: usa a nota de volume mais próximo sem passar dele (senão, a de menor volume)
+function nfUnit(key,n){
+  const c=[]; NFS.forEach((x)=>x.items.forEach((i)=>{ if(i.key===key) c.push({qty:i.qty,unit:i.unit,ref:x.ref}); }));
+  if(!c.length) return null;
+  const le=c.filter((i)=>i.qty<=n).sort((a,b)=>(b.qty-a.qty)||(a.ref<b.ref?1:-1));
+  if(le.length) return le[0].unit;
+  c.sort((a,b)=>(a.qty-b.qty)||(a.ref<b.ref?1:-1));
+  return c[0].unit;
+}
+// custo de um relatório: onde há nota fiscal vale o valor da nota; onde não há, estimativa
+function sCosts(rep){
+  if(!rep||!NFS.length) return null;
+  const types=new Map(), cycles=[], notes=[]; let total=0, estV=0, withNF=0;
+  rep.data.cycles.forEach((c)=>{
+    const x=NFBY.get(c.tok), names=new Map();
+    c.byType.forEach((v,k)=>names.set(nfKey(k),k));
+    if(x) x.items.forEach((i)=>{ if(!names.has(i.key)) names.set(i.key,i.tipo); });
+    let cv=0, ce=false;
+    names.forEach((tipo,key)=>{
+      const v=c.byType.get(tipo), n=v?v.n:0, it=x?x.items.find((i)=>i.key===key):null;
+      let val=null, est=false;
+      if(it){
+        val=it.total;
+        if(n!==it.qty) notes.push('Ciclo '+c.tok+': a nota cobra '+fmtInt(it.qty)+' de '+tipo+' e o consumo mostra '+fmtInt(n)+'. O valor segue a nota.');
+      }else if(!x&&n>0){
+        const u=nfUnit(key,n); if(u!=null){ val=cents(n*u); est=true; }
+      }else if(x&&n>0) notes.push('Ciclo '+c.tok+': '+tipo+' tem '+fmtInt(n)+' chamadas no consumo e não aparece na nota, então ficou sem valor.');
+      if(val==null) return;
+      cv+=val; if(est){ ce=true; estV+=val; }
+      let o=types.get(tipo); if(!o){ o={val:0,est:0}; types.set(tipo,o); }
+      o.val+=val; if(est) o.est+=val;
+    });
+    cycles.push({tok:c.tok,val:cents(cv),est:ce,nf:!!x});
+    total+=cv; if(x) withNF++;
+  });
+  const sem=cycles.filter((c)=>!c.nf).map((c)=>c.tok);
+  if(sem.length) notes.push('Sem nota fiscal '+(sem.length===1?'no ciclo ':'nos ciclos ')+sem.join(', ')+': '+(sem.length===1?'o valor é estimado':'os valores são estimados')+' com o preço das notas recebidas para um volume parecido e '+(sem.length===1?'pode mudar':'podem mudar')+' quando a nota chegar.');
+  return {total:cents(total),est:cents(estV),cycles,types,notes,withNF,n:cycles.length};
+}
+function nfConf(x){
+  const c=SFREE&&SFREE.data.cycles.find((q)=>q.tok===x.ref); if(!c) return '—';
+  const got=new Map(); c.byType.forEach((v,k)=>got.set(nfKey(k),(got.get(nfKey(k))||0)+v.n));
+  const bad=x.items.some((i)=>(got.get(i.key)||0)!==i.qty)||[...got.keys()].some((k)=>got.get(k)>0&&!x.items.some((i)=>i.key===k));
+  return bad?'Difere do consumo':'Bate com o consumo';
+}
+function renderNF(){
+  const adm=isAdmin(), tb=$('#sfNf'), nn=$('#nfNotes'); nn.replaceChildren();
+  $('#nfHint').textContent=NFS.length
+    ?(NFS.length+(NFS.length===1?' nota fiscal salva':' notas fiscais salvas')+' no SharePoint (ciclos '+NFS[0].ref+(NFS.length>1?' a '+NFS[NFS.length-1].ref:'')+'). O valor de cada chamada vem direto das notas: ao subir uma nota nova, o painel recalcula sozinho.')
+    :('Ainda não há notas fiscais do Serpro salvas. '+(adm?'Solte os PDFs das notas na área de cima, junto com os relatórios ou sozinhos, e o painel calcula o valor de cada chamada.':'Peça a um Administrador para subir as notas.'));
+  const notes=[];
+  NFBAD.forEach((b)=>notes.push('Não consegui ler a nota '+b.name+': '+b.why+'.'));
+  if(!NFS.length){ tb.replaceChildren(); nn.hidden=!notes.length; notes.forEach((t)=>nn.appendChild(h('li',null,t))); return; }
+  const types=[]; NFS.forEach((x)=>x.items.forEach((i)=>{ if(!types.some((t)=>t.key===i.key)) types.push({key:i.key,label:i.tipo}); }));
+  const cols=[{t:'Ciclo'},{t:'Período'}].concat(types.map((t)=>({t:t.label+' (qtd × preço)',n:1})),[{t:'Total da nota',n:1},{t:'Consumo'}]);
+  let sum=0;
+  const rows=NFS.map((x)=>{
+    sum+=x.total;
+    return [x.ref,x.start?brDate(x.start)+' a '+brDate(x.end):'—']
+      .concat(types.map((t)=>{ const it=x.items.find((i)=>i.key===t.key); return it?fmtInt(it.qty)+' × '+brlUnit(it.unit):'—'; }),[brl(x.total),nfConf(x)]);
+  });
+  sTable(tb,cols,rows,['Total',''].concat(types.map(()=>''),[brl(cents(sum)),'']));
+  const last=NFS[NFS.length-1];
+  notes.push('Preço de cada chamada na nota mais recente ('+last.ref+'): '+last.items.map((i)=>i.tipo+' '+brlUnit(i.unit)).join(', ')+'.');
+  types.forEach((t)=>{
+    const byU=new Map();
+    NFS.forEach((x)=>x.items.forEach((i)=>{ if(i.key!==t.key) return; if(!byU.has(i.unit)) byU.set(i.unit,[]); byU.get(i.unit).push(i.qty); }));
+    if(byU.size>1) notes.push('O preço de '+t.label+' variou entre os ciclos: '+[...byU.entries()].sort((a,b)=>b[0]-a[0]).map((e)=>brlUnit(e[0])+' com '+e[1].sort((a,b)=>a-b).map(fmtInt).join(' e ')+' chamadas').join('; ')+'.');
+  });
+  NFS.forEach((x)=>x.warns.forEach((w)=>notes.push('Nota '+x.ref+': '+w+'.')));
+  notes.forEach((t)=>nn.appendChild(h('li',null,t))); nn.hidden=!notes.length;
 }
 
 /* ---- tabelas e gráfico ---- */
@@ -2749,7 +2987,7 @@ function sNotes(d,per,kind){
   if(per.partial) n.push('Ciclo em andamento: a média por dia considera os '+per.effDays+' dias até hoje.');
   return n;
 }
-function sKpis(box,r){
+function sKpis(box,r,cs){
   const d=r.data, per=r.per, hasErr=d.errors!=null, hasDetail=!!d.bySvc;
   const items=[
     {v:per.days+(per.days===1?' dia':' dias'),l:'Duração',s:per.partial?('até hoje: '+per.effDays+' dias'):(per.source==='ciclos'?(per.count+' ciclos seguidos'):'dias corridos, contando o primeiro e o último')},
@@ -2758,34 +2996,54 @@ function sKpis(box,r){
     {v:hasErr?fmtInt(d.errors):'—',l:'Com erro',s:hasErr?'resposta diferente de 200':'precisa do arquivo detalhado de todos os ciclos'},
     {v:hasDetail?fmtInt(d.bySvc.size):fmtInt(d.byType.size),l:hasDetail?'Serviços usados':'Tipos de chamada',s:hasDetail?(fmtInt(d.byType.size)+' tipos'):''}
   ];
+  const cost=[{v:cs?brl(cs.total):'—',l:'Custo no período',s:cs?(cs.withNF+' de '+cs.n+(cs.n===1?' ciclo':' ciclos')+' com nota fiscal'+(cs.est?('; '+brl(cs.est)+' estimado'):'')):'suba as notas fiscais (PDF) para ver o valor'}];
+  if(cs&&d.total) cost.push({v:brlCall(cs.total/d.total),l:'Custo por chamada',s:'média do período'});
+  items.splice(2,0,...cost);
   kpiRow(box,items,'');
 }
 function renderSFree(){
+  renderNF();
   const has=!!SFREE, d=has?SFREE.data:null;
   const allDet=has&&d.kind==='detalhado', hasDetail=has&&!!d.bySvc, hasErr=has&&d.errors!=null;
   $('#sfPanel').hidden=!has; $('#sfTypeSec').hidden=!has;
   $('#sfCycSec').hidden=!(has&&d.cycles.length>1);
   $('#sfDaySec').hidden=!allDet; $('#sfSvcSec').hidden=!hasDetail;
   $('#sfDrop').classList.toggle('compact',has);
-  $('#sfTitle').textContent=has?'Subir um novo relatório (.zip ou .csv)':SFREE_TITLE;
-  $('#sfSub').textContent=has?'Clique ou solte um arquivo para salvar no SharePoint. O painel soma todos os arquivos enviados no mesmo dia.':SFREE_SUB;
+  $('#sfTitle').textContent=has?'Subir relatórios (.zip ou .csv) ou notas fiscais (.pdf)':SFREE_TITLE;
+  $('#sfSub').textContent=has?'Clique ou solte arquivos para salvar no SharePoint. O painel soma os relatórios enviados no mesmo dia e lê o valor das chamadas nas notas fiscais.':SFREE_SUB;
   if(!has) return;
   const r=SFREE, per=r.per;
   periodBanner(per,r.name,null,$('#sfPeriodVal'),$('#sfPeriodSrc'),$('#sfPeriod'));
   if(allDet&&d.cycles.length===1&&d.first) $('#sfPeriodSrc').appendChild(document.createTextNode(' Chamadas registradas de '+brDate(d.first)+' a '+brDate(d.last)+'.'));
-  const nl=$('#sfNotes'); nl.replaceChildren(); const notes=sNotes(d,per);
+  const cs=sCosts(r);
+  const nl=$('#sfNotes'); nl.replaceChildren(); const notes=sNotes(d,per); if(cs) cs.notes.forEach((t)=>notes.push(t));
   if(r.bad&&r.bad.length) notes.push(r.bad.length+(r.bad.length===1?' arquivo do mesmo dia foi ignorado':' arquivos do mesmo dia foram ignorados')+' ('+r.bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; ')+(r.bad.length>3?'; ...':'')+').');
   notes.forEach((t)=>nl.appendChild(h('li',null,t))); nl.hidden=!notes.length;
-  sKpis($('#sfKpis'),r);
+  sKpis($('#sfKpis'),r,cs);
   const tot=d.total;
-  sTable($('#sfType'),[{t:'Tipo'},{t:'Chamadas',n:1},{t:'% do total',n:1},{t:'Por dia',n:1},{t:'Com erro',n:1}],
-    sorted(d.byType,(o)=>o.n).map((e)=>[e[0],fmtInt(e[1].n),fmtPct(e[1].n/tot),nf1(e[1].n/per.effDays),e[1].err==null?'—':fmtInt(e[1].err)]),
-    ['Total',fmtInt(tot),'100%',nf1(tot/per.effDays),hasErr?fmtInt(d.errors):'—']);
+  const star=(o)=>o.est>0?' *':'';
+  const tcols=[{t:'Tipo'},{t:'Chamadas',n:1},{t:'% do total',n:1},{t:'Por dia',n:1},{t:'Com erro',n:1}];
+  if(cs) tcols.push({t:'Valor',n:1},{t:'Preço por chamada',n:1});
+  sTable($('#sfType'),tcols,
+    sorted(d.byType,(o)=>o.n).map((e)=>{
+      const row=[e[0],fmtInt(e[1].n),fmtPct(e[1].n/tot),nf1(e[1].n/per.effDays),e[1].err==null?'—':fmtInt(e[1].err)];
+      if(cs){ const o=cs.types.get(e[0]); row.push(o?brl(o.val)+star(o):'—',o&&e[1].n?brlUnit(o.val/e[1].n):'—'); }
+      return row;
+    }),
+    ['Total',fmtInt(tot),'100%',nf1(tot/per.effDays),hasErr?fmtInt(d.errors):'—'].concat(cs?[brl(cs.total)+star(cs),tot?brlUnit(cs.total/tot):'—']:[]));
+  const tn=$('#sfTypeNote'); tn.hidden=!(cs&&cs.est>0); tn.textContent='* inclui valor estimado de ciclo sem nota fiscal.';
   if(d.cycles.length>1){
-    sTable($('#sfCyc'),[{t:'Ciclo'},{t:'Período'},{t:'Arquivo'},{t:'Chamadas',n:1},{t:'Por dia',n:1},{t:'Com erro',n:1}],
-      d.cycles.map((c)=>[c.tok,c.per.label,c.kind,fmtInt(c.total),nf1(c.total/c.per.effDays),c.errors==null?'—':fmtInt(c.errors)]),
-      ['Total','','',fmtInt(tot),nf1(tot/per.effDays),hasErr?fmtInt(d.errors):'—']);
+    const ccols=[{t:'Ciclo'},{t:'Período'},{t:'Arquivo'},{t:'Chamadas',n:1},{t:'Por dia',n:1},{t:'Com erro',n:1}];
+    if(cs) ccols.push({t:'Valor',n:1},{t:'Origem do valor'});
+    sTable($('#sfCyc'),ccols,
+      d.cycles.map((c,i)=>{
+        const row=[c.tok,c.per.label,c.kind,fmtInt(c.total),nf1(c.total/c.per.effDays),c.errors==null?'—':fmtInt(c.errors)];
+        if(cs){ const q=cs.cycles[i]; row.push(brl(q.val),q.nf?'Nota fiscal':'Estimado'); }
+        return row;
+      }),
+      ['Total','','',fmtInt(tot),nf1(tot/per.effDays),hasErr?fmtInt(d.errors):'—'].concat(cs?[brl(cs.total),'']:[]));
   }
+  const cn=$('#sfCycNote'); cn.hidden=true;
   if(!hasDetail) return;
   let st=0; d.bySvc.forEach((v)=>{ st+=v.n; });
   sTable($('#sfSvc'),[{t:'Serviço'},{t:'Tipo'},{t:'Chamadas',n:1},{t:'% do total',n:1},{t:'Com erro',n:1}],
@@ -2832,6 +3090,8 @@ async function loadSerproList(force){
     let items=[];
     try{ items=await listReports(CFG.serpro); }catch(e){ if(e.status!==404) throw e; }
     if(!SESSION) return;
+    await loadNFs();
+    if(!SESSION) return;
     const now=Date.now();
     sExtra=sExtra.filter((x)=>now-x.ts<RECENT_MS);
     sExtra.forEach((x)=>{ if(!items.some((i)=>i.id===x.item.id)) items.push(x.item); });
@@ -2859,6 +3119,9 @@ async function loadSFree(files){
   files=(files||[]).filter(Boolean);
   if(!files.length||!SESSION||view!=='sfree') return;
   if(!isAdmin()){ setErr('#sfErr','Só Administradores podem subir relatórios.'); return; }
+  const pdfs=files.filter(isPdf); files=files.filter((f)=>!isPdf(f));
+  if(pdfs.length) await loadNFFiles(pdfs);
+  if(!files.length||!SESSION||view!=='sfree') return;
   const cands=[], bad=[];
   setSFSrc('Lendo os arquivos...',false);
   try{
@@ -2904,11 +3167,12 @@ async function loadSFree(files){
 }
 function resetSerpro(){
   SFREE=null; SLIST=[]; SFREE_ID=null; SCMP={A:null,B:null}; scmpMode='total'; sExtra=[]; SREPCACHE.clear();
+  NFS=[]; NFBY=new Map(); NFLIST=[]; NFBAD=[]; nfExtra=[]; NFCACHE.clear(); setErr('#nfErr',''); $('#nfMsg').textContent=''; $('#nfHint').textContent='';
   setErr('#sfErr',''); setErr('#scmpErr',''); setSFSrc('',false);
   $('#sfPanel').hidden=true; $('#sfTypeSec').hidden=true; $('#sfCycSec').hidden=true; $('#sfDaySec').hidden=true; $('#sfSvcSec').hidden=true; $('#scmpOut').hidden=true;
   $('#sfDrop').classList.remove('compact');
   $('#sfTitle').textContent=SFREE_TITLE; $('#sfSub').textContent=SFREE_SUB;
-  ['#sfKpis','#sfType','#sfCyc','#sfSvc','#sfDays','#sfTop','#sGTbl','#sTTbl','#sSTbl','#homeGrid'].forEach((s)=>{ const el=$(s); if(el) el.replaceChildren(); });
+  ['#sfKpis','#sfType','#sfCyc','#sfSvc','#sfDays','#sfTop','#sGTbl','#sTTbl','#sSTbl','#homeGrid','#sfNf','#nfNotes'].forEach((s)=>{ const el=$(s); if(el) el.replaceChildren(); });
   $('#homeSrc').textContent=''; $('#homeNote').textContent='';
   sSlotUI('A'); sSlotUI('B');
 }
@@ -2950,6 +3214,8 @@ function renderSCmp(){
   if(ov>0) notes.push('Os períodos se sobrepõem em '+ov+(ov===1?' dia':' dias')+': parte das chamadas aparece nos dois arquivos.');
   if(A.per.partial||B.per.partial) notes.push('Há ciclo em andamento: os valores por dia consideram só os dias até hoje.');
   if(!(a.bySvc&&b.bySvc)) notes.push('Algum dos lados não tem arquivo detalhado: só dá para comparar os totais por tipo. Com os detalhados, o comparativo também mostra por serviço.');
+  const ca=sCosts(A), cb=sCosts(B);
+  if(ca&&cb){ ca.notes.forEach((t)=>notes.push('Arquivo A: '+t)); cb.notes.forEach((t)=>notes.push('Arquivo B: '+t)); }
   ['A','B'].forEach((w)=>{ const r=w==='A'?A:B; r.data.checks.forEach((t)=>notes.push('Arquivo '+w+': '+t)); if(r.bad&&r.bad.length) notes.push('Arquivo '+w+': '+r.bad.length+(r.bad.length===1?' arquivo do zip foi ignorado':' arquivos do zip foram ignorados')+' ('+r.bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; ')+').'); });
   const wn=$('#scmpNotes'); wn.replaceChildren(); notes.forEach((t)=>wn.appendChild(h('li',null,t))); wn.hidden=!notes.length;
 
@@ -2974,6 +3240,10 @@ function renderSCmp(){
   line('Duração (dias)',A.per.days,B.per.days,fmtInt,true);
   line('Chamadas',a.total,b.total,fmtInt);
   line('Chamadas por dia',a.total/da,b.total/db,nf1);
+  if(ca&&cb){
+    line('Custo no período',ca.total,cb.total,brl);
+    line('Custo por chamada',a.total?ca.total/a.total:null,b.total?cb.total/b.total:null,brlCall);
+  }
   line('Com erro (resposta diferente de 200)',a.errors,b.errors,fmtInt);
   line('Tipos de chamada',a.byType.size,b.byType.size,fmtInt,true);
   line('Serviços usados',a.bySvc?a.bySvc.size:null,b.bySvc?b.bySvc.size:null,fmtInt,true);
@@ -3020,12 +3290,12 @@ function renderHome(){
     p.appendChild(h('p','hint',FREE.name+', enviado em '+fmtDateTime(FREE.item.createdDateTime)+'.'));
   }));
   // Serpro
-  grid.appendChild(homePanel('Serpro (chamadas)','sfree',(p)=>{
+  grid.appendChild(homePanel('Serpro (chamadas e reais)','sfree',(p)=>{
     if(!SFREE){
       p.appendChild(h('p','hint',busy?'Buscando o relatório no SharePoint...':($('#sfErr').hidden?(isAdmin()?'Ainda não há relatório do Serpro salvo. Suba o primeiro em Serpro, Período livre.':'Ainda não há relatório do Serpro salvo. Peça a um Administrador para subir o primeiro.'):$('#sfErr').textContent)));
       return;
     }
-    const d=SFREE.data, per=SFREE.per, bx=homePeriod(p);
+    const d=SFREE.data, per=SFREE.per, bx=homePeriod(p), cs=sCosts(SFREE);
     periodBanner(per,SFREE.name,null,bx.v,bx.s,bx.bx);
     const k=h('div','kpis'); p.appendChild(k);
     const bt=sorted(d.byType,(o)=>o.n)[0];
@@ -3033,12 +3303,12 @@ function renderHome(){
       {v:fmtInt(d.total),l:'Chamadas',s:fmtInt(d.total/per.effDays)+' por dia'},
       {v:d.errors==null?'—':fmtInt(d.errors),l:'Com erro',s:d.errors==null?'precisa do detalhado':'resposta diferente de 200'},
       {v:bt?bt[0]:'—',l:'Tipo mais usado',s:bt?(fmtInt(bt[1].n)+' chamadas ('+fmtPct(bt[1].n/d.total)+')'):''},
-      {v:d.bySvc?fmtInt(d.bySvc.size):fmtInt(d.byType.size),l:d.bySvc?'Serviços usados':'Tipos de chamada',s:''}
+      {v:cs?brl(cs.total):'—',l:'Custo no período',s:cs?(cs.est?('inclui '+brl(cs.est)+' estimado'):'conforme as notas fiscais'):'suba as notas fiscais em Serpro, Período livre'}
     ],'');
     p.appendChild(h('p','hint',capS(sfWhat(SFREE))+'.'));
   }));
   const diff=FREE&&FREE.per&&SFREE&&(FREE.per.start!==SFREE.per.start||FREE.per.end!==SFREE.per.end);
-  $('#homeNote').textContent='O Claude é medido em dólar e o Serpro em chamadas, por isso os dois não são somados. Cada painel mostra o relatório mais recente salvo no SharePoint.'+(diff?' Atenção: os períodos dos dois relatórios são diferentes.':'');
+  $('#homeNote').textContent='O Claude é medido em dólar e o Serpro em reais (valor das chamadas lido das notas fiscais), por isso os dois não são somados. Cada painel mostra o relatório mais recente salvo no SharePoint.'+(diff?' Atenção: os períodos dos dois relatórios são diferentes.':'');
   $('#homeSrc').textContent=busy?'Buscando os relatórios no SharePoint...':'';
 }
 
