@@ -220,6 +220,19 @@ td.wrapc{white-space:normal;min-width:160px}
   .brow{grid-template-columns:96px 1fr 76px 38px;gap:8px}
   .drop.compact{flex-direction:column;align-items:flex-start}
 }
+.nav-group-btn .chev{margin-left:auto;width:16px;height:16px;transition:transform .15s}
+.nav-group-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.nav-group-btn[data-active="true"]{font-weight:700}
+.nav-sub{display:flex;flex-direction:column;gap:4px;margin:2px 0 4px 18px;padding-left:10px;border-left:1px solid var(--lz-border)}
+.nav-sub[hidden]{display:none}
+.nav-sub .nav-item{padding:8px 12px;font-size:13.5px}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.phead h2{margin:0}
+.dchart{display:flex;align-items:flex-end;gap:2px;height:150px;margin-top:10px;border-bottom:1px solid var(--lz-border)}
+.dchart .dbar{flex:1;height:100%;display:flex;align-items:flex-end;min-width:0}
+.dchart .dbar i{display:block;width:100%;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px}
+.dchart .dbar i.z{background:var(--lz-border-strong)}
+.dax{display:flex;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -240,9 +253,22 @@ td.wrapc{white-space:normal;min-width:160px}
 <aside class="side" id="side" aria-label="Menu principal" hidden>
   <div class="side-logo"><img id="logoImg" src="https://raw.githubusercontent.com/lucralize/pagina-principal/main/lucralize-logo-horizontal.png" alt="Lucralize"><span class="fb" id="logoFb" hidden>Lucralize</span></div>
   <nav class="nav" aria-label="Seções">
-    <button class="nav-item" id="navDash" type="button" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Custos por mês</button>
-    <button class="nav-item" id="navFree" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Período livre</button>
-    <button class="nav-item" id="navCmp" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8l4-4 4 4M13 16l4 4 4-4"/></svg>Comparar arquivos</button>
+    <button class="nav-item" id="navHome" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Visão geral</button>
+    <button class="nav-item" id="navDash" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Custos por mês</button>
+    <div class="nav-group">
+      <button class="nav-item nav-group-btn" id="grpClaude" type="button" aria-expanded="false" aria-controls="subClaude"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9"/></svg>Claude<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="nav-sub" id="subClaude" hidden>
+        <button class="nav-item" id="navFree" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Período livre</button>
+        <button class="nav-item" id="navCmp" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8l4-4 4 4M13 16l4 4 4-4"/></svg>Comparar arquivos</button>
+      </div>
+    </div>
+    <div class="nav-group">
+      <button class="nav-item nav-group-btn" id="grpSerpro" type="button" aria-expanded="false" aria-controls="subSerpro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Serpro<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="nav-sub" id="subSerpro" hidden>
+        <button class="nav-item" id="navSFree" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Período livre</button>
+        <button class="nav-item" id="navSCmp" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8l4-4 4 4M13 16l4 4 4-4"/></svg>Comparar arquivos</button>
+      </div>
+    </div>
     <button class="nav-item" id="usersBtn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5 6.5-5s5.7 1.5 6.5 5M17 11a3 3 0 1 0 0-6M18 15c2 .5 3.3 2 3.8 5"/></svg>Usuários</button>
   </nav>
   <div class="side-foot">
@@ -302,6 +328,82 @@ td.wrapc{white-space:normal;min-width:160px}
       </div>
     </div>
     <div class="scroll"><table id="uTbl"></table></div>
+  </section>
+
+  <section id="homeView" hidden>
+    <div class="srcline"><span id="homeSrc"></span><button class="linkbtn" id="homeRefresh" type="button">Verificar novos arquivos</button></div>
+    <div class="two" id="homeGrid" style="margin-top:14px"></div>
+    <p class="hint" id="homeNote"></p>
+  </section>
+
+  <section id="sfreeView" hidden>
+    <div class="srcline"><span id="sfSrcText"></span><button class="linkbtn" id="sfRefresh" type="button" hidden>Verificar novo arquivo</button></div>
+    <label class="drop" id="sfDrop">
+      <input type="file" id="sfFile" accept=".csv,.zip,text/csv,application/zip" multiple>
+      <span class="tx"><span class="drop-title" id="sfTitle"></span><span class="drop-sub" id="sfSub"></span></span>
+      <span class="swap">Trocar arquivo</span>
+    </label>
+    <p class="err" id="sfErr" role="alert" hidden></p>
+    <section class="panel" id="sfPanel" hidden aria-labelledby="h-sf">
+      <h2 id="h-sf">Resumo do arquivo</h2>
+      <div class="period" id="sfPeriod">
+        <div class="plabel">Período analisado</div>
+        <div class="pval" id="sfPeriodVal"></div>
+        <p class="hint" id="sfPeriodSrc"></p>
+      </div>
+      <ul class="reads" id="sfNotes" hidden></ul>
+      <div class="kpis" id="sfKpis" style="margin-top:14px"></div>
+    </section>
+    <section class="panel" id="sfDaySec" hidden aria-labelledby="h-sfd">
+      <h2 id="h-sfd">Chamadas por dia</h2>
+      <div id="sfDays"></div>
+      <h3>Dias com mais chamadas</h3>
+      <div class="scroll"><table id="sfTop"></table></div>
+    </section>
+    <section class="panel" id="sfTypeSec" hidden aria-labelledby="h-sft">
+      <h2 id="h-sft">Por tipo de chamada</h2>
+      <div class="scroll"><table id="sfType"></table></div>
+    </section>
+    <section class="panel" id="sfSvcSec" hidden aria-labelledby="h-sfs">
+      <h2 id="h-sfs">Por serviço</h2>
+      <div class="scroll"><table id="sfSvc"></table></div>
+    </section>
+  </section>
+
+  <section id="scmpView" hidden>
+    <div class="two cmpslots">
+      <label class="drop slot" id="sslotA">
+        <input type="file" id="sfileA" accept=".csv,text/csv">
+        <span class="tx"><span class="drop-title" id="sslotATitle"></span><span class="drop-sub" id="sslotASub"></span></span>
+        <span class="swap">Trocar</span>
+      </label>
+      <label class="drop slot" id="sslotB">
+        <input type="file" id="sfileB" accept=".csv,text/csv">
+        <span class="tx"><span class="drop-title" id="sslotBTitle"></span><span class="drop-sub" id="sslotBSub"></span></span>
+        <span class="swap">Trocar</span>
+      </label>
+    </div>
+    <p class="err" id="scmpErr" role="alert" hidden></p>
+    <div id="scmpOut" hidden>
+      <div class="controls">
+        <div class="ctl">Valores <div class="segmented" id="scmpMode" role="group" aria-label="Totais ou por dia"></div></div>
+        <button class="ghost" id="scmpSwap" type="button">Inverter A e B</button>
+      </div>
+      <ul class="reads" id="scmpNotes" style="margin-top:14px" hidden></ul>
+      <section class="panel" aria-labelledby="h-scg">
+        <h2 id="h-scg">Comparativo geral</h2>
+        <div class="scroll"><table id="sGTbl"></table></div>
+      </section>
+      <section class="panel" aria-labelledby="h-sct">
+        <h2 id="h-sct">Por tipo de chamada</h2>
+        <p class="hint" id="scmpHint"></p>
+        <div class="scroll"><table id="sTTbl"></table></div>
+      </section>
+      <section class="panel" id="sSvcSec" aria-labelledby="h-scs">
+        <h2 id="h-scs">Por serviço</h2>
+        <div class="scroll"><table id="sSTbl"></table></div>
+      </section>
+    </div>
   </section>
 
   <main id="app" hidden>
@@ -618,7 +720,8 @@ const CFG={
   tenantId:'5173aa83-66e1-49f3-9128-f2251b43294d',
   driveId:'b!ekISGx37FUa8VJQoVDwcqosBcJf3ciVJhg2HmW7OU_Skpx_nvEGVTIcQ4XWlDxbZ',   // biblioteca "Operacional"
   base:'PI - PROCESSOS E INFRA/AUTOMAÇÕES CLAUDE/consumo-claude',
-  reports:'Relatorios',            // subpasta onde os CSVs ficam salvos
+  reports:'Relatorios',            // subpasta onde os CSVs do Claude ficam salvos
+  serpro:'RelatoriosSerpro',       // subpasta dos relatórios do Serpro
   usersFile:'ConsumoClaude.xlsx',  // planilha de usuários, na pasta base
   table:'tblUsuarios',
   costsFile:'CustosAPIs.xlsx',     // planilha de custos de API (Serpro) e câmbio, na pasta base
@@ -973,15 +1076,22 @@ async function removeUser(email){
 }
 const VIEW_TEXT={
   dash:['Gestão de custos de IA e API','Custo mensal do Claude e do Serpro (Integra Contador, usado no Domínio e no Oneflow) em uma só visão, com comparativo com o mês anterior e o consumo de cada membro do Claude.'],
-  free:['Período livre','Mostra sempre o relatório mais recente salvo no SharePoint, de qualquer período, por exemplo o de 90 dias. O período analisado é lido do final do nome do arquivo (AAAA-MM-DD-to-AAAA-MM-DD.csv). Administradores sobem novos arquivos.'],
-  cmp:['Comparar arquivos','Suba dois relatórios e veja a variação do segundo em relação ao primeiro, no total e por dia. É temporário: os arquivos ficam só nesta tela e nada é salvo.'],
+  home:['Visão geral','Resumo do relatório mais recente do Claude (gasto em dólar) e do Serpro (chamadas), lado a lado. Cada um usa uma unidade diferente, por isso os dois não são somados.'],
+  sfree:['Serpro: período livre','Mostra sempre o relatório mais recente do Serpro (Integra Contador) salvo no SharePoint. O período é lido do mês no nome do arquivo (AAAA-MM). Administradores sobem novos arquivos.'],
+  scmp:['Serpro: comparar arquivos','Suba dois relatórios do Serpro e veja a variação de B contra A, no total e por dia. É temporário: os arquivos ficam só nesta tela e nada é salvo.'],
+  free:['Claude: período livre','Mostra sempre o relatório mais recente salvo no SharePoint, de qualquer período, por exemplo o de 90 dias. O período analisado é lido do final do nome do arquivo (AAAA-MM-DD-to-AAAA-MM-DD.csv). Administradores sobem novos arquivos.'],
+  cmp:['Claude: comparar arquivos','Suba dois relatórios e veja a variação do segundo em relação ao primeiro, no total e por dia. É temporário: os arquivos ficam só nesta tela e nada é salvo.'],
   users:['Usuários','Cadastro de quem pode acessar o dashboard.']
 };
 // única função que decide o que aparece, conforme a tela atual
 function syncView(){
-  const adm=isAdmin(), dash=view==='dash', free=view==='free', cmp=view==='cmp', users=view==='users';
+  const adm=isAdmin(), dash=view==='dash', free=view==='free', cmp=view==='cmp', users=view==='users', home=view==='home', sfree=view==='sfree', scmp=view==='scmp';
   const hasMonths=MONTHS.length>0, rep=REPORTS.has(state.month);
   $('#usersView').hidden=!users;
+  $('#homeView').hidden=!home; $('#sfreeView').hidden=!sfree; $('#scmpView').hidden=!scmp; $('#sfDrop').hidden=!adm;
+  if(free||cmp) setGroup('Claude',true);
+  if(sfree||scmp) setGroup('Serpro',true);
+  $('#grpClaude').dataset.active=String(free||cmp); $('#grpSerpro').dataset.active=String(sfree||scmp);
   $('#app').hidden=!((dash&&hasMonths)||free||cmp);
   $('#monthSec').hidden=!dash;
   $('#freeSec').hidden=!free; $('#cmpView').hidden=!cmp;
@@ -992,17 +1102,21 @@ function syncView(){
   $('#drop').hidden=!(dash&&adm);
   $('#srcline').hidden=!(dash&&!!$('#srcText').textContent);
   if(!dash) $('#err').hidden=true;
-  [['navDash','dash'],['navFree','free'],['navCmp','cmp'],['usersBtn','users']].forEach((p)=>{
+  [['navHome','home'],['navDash','dash'],['navFree','free'],['navCmp','cmp'],['navSFree','sfree'],['navSCmp','scmp'],['usersBtn','users']].forEach((p)=>{
     if(view===p[1]) $('#'+p[0]).setAttribute('aria-current','page'); else $('#'+p[0]).removeAttribute('aria-current');
   });
   $('#pageTitle').textContent=VIEW_TEXT[view][0]; $('#pageLead').textContent=VIEW_TEXT[view][1];
 }
+function setGroup(id,open){ $('#grp'+id).setAttribute('aria-expanded',String(open)); $('#sub'+id).hidden=!open; }
 function setView(v){
   if(v==='users'&&!isAdmin()) return;   // só Administrador
   if(v==='dash'&&!MONTH_VIEW) return;
   view=v;
   if(v==='users') openUsers();
+  else if(v==='home') renderHome();
   else if(v==='free') renderFree();
+  else if(v==='sfree') renderSFree();
+  else if(v==='scmp') renderSCmp();
   else if(v==='cmp') renderCmp();
   else if(MONTHS.length) renderAll();
   syncView();
@@ -1036,9 +1150,9 @@ async function enterApp(){
   const adm=SESSION.tipo==='Administrador';
   $('#side').hidden=false; $('#menuBtn').hidden=false;
   $('#usersBtn').hidden=!adm;   // só Administrador vê Usuários
-  $('#navDash').hidden=!MONTH_VIEW; $('#navFree').hidden=false; $('#navCmp').hidden=false;
+  $('#navDash').hidden=!MONTH_VIEW; $('#navFree').hidden=false; $('#navCmp').hidden=false; $('#navSFree').hidden=false; $('#navSCmp').hidden=false;
   if(MONTH_VIEW){ view='dash'; syncView(); await loadLatest(true); }
-  else { setView('free'); await loadFreeList(true); }
+  else { setView('home'); await Promise.all([loadFreeList(true),loadSerproList(true)]); }
 }
 function logout(){
   if(!window.confirm('Deseja sair do dashboard?')) return;
@@ -1046,7 +1160,7 @@ function logout(){
   SESSION=null; token=null; CUR=null;
   view='dash'; USERS=[]; fileIds={}; recent={}; editing=null;
   REPORTS=new Map(); REPCACHE=new Map(); SKIPPED=[]; MONTHS=[]; extraItems=[]; COSTS=[]; CAMBIO=[]; costsLoaded=false; costsErr=''; costWriteTs=0; editingCost=null; state.month=null;
-  $('#usersView').hidden=true; $('#usersBtn').hidden=true; $('#navFree').hidden=true; $('#navCmp').hidden=true; resetLocal(); state.mode='month'; $('#uForm').hidden=true; $('#uTbl').replaceChildren(); uMsg(''); uError('');
+  $('#usersView').hidden=true; $('#usersBtn').hidden=true; $('#navFree').hidden=true; $('#navCmp').hidden=true; $('#navSFree').hidden=true; $('#navSCmp').hidden=true; $('#homeView').hidden=true; $('#sfreeView').hidden=true; $('#scmpView').hidden=true; resetLocal(); resetSerpro(); state.mode='month'; $('#uForm').hidden=true; $('#uTbl').replaceChildren(); uMsg(''); uError('');
   state.rows=[]; state.selected=null;
   ['#kpis','#reads','#chart','#legend','#tbl','#detail','#heat','#byProduct','#byModel','#freeKpis','#gTbl','#mTbl','#pTbl','#costKpis','#costBar','#costCards','#costNotes','#cmpTbl','#trend','#trendLegend','#apiKpis','#apiSys','#apiLog','#month'].forEach((s)=>{ const el=$(s); if(el) el.replaceChildren(); });
   $('#cForm').hidden=true; $('#fxForm').hidden=true; $('#apiAdmin').hidden=true; $('#skipNote').hidden=true; $('#cErr').hidden=true; $('#cMsg').textContent='';
@@ -1070,8 +1184,8 @@ function setSrc(text,showRefresh){
   $('#refresh').hidden=!showRefresh;
   $('#srcline').hidden=!text||view!=='dash';
 }
-async function listReports(){
-  let url='/drives/'+CFG.driveId+'/root:/'+pathUrl(CFG.base+'/'+CFG.reports)+':/children?$select=id,name,size,createdDateTime,file&$top=200';
+async function listReports(folder){
+  let url='/drives/'+CFG.driveId+'/root:/'+pathUrl(CFG.base+'/'+(folder||CFG.reports))+':/children?$select=id,name,size,createdDateTime,file&$top=200';
   const out=[]; let guard=0;
   while(url&&guard++<20){
     const r=await graph('GET',url);
@@ -1191,21 +1305,22 @@ function stamp(){
   return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
 }
 const safeName=(n)=>n.replace(/[\\/:*?"<>|#%\u0000-\u001f]/g,'_');
-async function ensureReportsFolder(){
-  try{ await graph('POST','/drives/'+CFG.driveId+'/root:/'+pathUrl(CFG.base)+':/children',{name:CFG.reports,folder:{},'@microsoft.graph.conflictBehavior':'fail'}); }
+async function ensureReportsFolder(folder){
+  try{ await graph('POST','/drives/'+CFG.driveId+'/root:/'+pathUrl(CFG.base)+':/children',{name:folder||CFG.reports,folder:{},'@microsoft.graph.conflictBehavior':'fail'}); }
   catch(e){ if(e.status!==409) throw e; }
 }
 // nome novo a cada envio (data e hora na frente): cada relatório vira um arquivo com "Criado em" próprio.
 // Sobrescrever um arquivo de mesmo nome manteria o Criado em original e o "mais recente" ficaria errado.
-async function saveReport(file){
+async function saveReport(file,folder){
+  folder=folder||CFG.reports;
   const name=stamp()+'_'+safeName(file.name);
-  const path='/drives/'+CFG.driveId+'/root:/'+pathUrl(CFG.base+'/'+CFG.reports+'/'+name)+':/content?@microsoft.graph.conflictBehavior=rename';
+  const path='/drives/'+CFG.driveId+'/root:/'+pathUrl(CFG.base+'/'+folder+'/'+name)+':/content?@microsoft.graph.conflictBehavior=rename';
   const put=()=>graphRaw('PUT',path,file,{'Content-Type':'text/csv'});
   let res;
   try{ res=await put(); }
   catch(e){
     if(e.status!==404) throw e;
-    await ensureReportsFolder();
+    await ensureReportsFolder(folder);
     res=await put();
   }
   return res.json();
@@ -2188,7 +2303,7 @@ async function loadFreeList(force){
     console.error(e);
     setErr('#freeErr',friendly(e));
     setFreeSrc('',true);
-  }finally{ loadingFree=false; }
+  }finally{ loadingFree=false; if(view==='home'&&SESSION) renderHome(); }
 }
 async function loadFree(file){
   setErr('#freeErr','');
@@ -2378,6 +2493,487 @@ function renderCmp(){
   });
 }
 
+/* ---------- Serpro (Integra Contador): consumo em chamadas ---------- */
+let SFREE=null, SLIST=[], SFREE_ID=null, loadingS=false, SCMP={A:null,B:null}, scmpMode='total', sExtra=[];
+const SREPCACHE=new Map();
+const SFREE_TITLE='Solte aqui um relatório do Serpro (.csv)';
+const SFREE_SUB='Pode ser o .zip do Serpro (com todos os meses) ou CSVs soltos, detalhado ou agrupado. Tudo é salvo no SharePoint e o mês vem do nome de cada arquivo (AAAA-MM).';
+const SFREE_NONE='Ainda não há relatório do Serpro salvo.';
+const brDate=(iso)=>iso.split('-').reverse().join('/');
+const isoDays=(a,b)=>Math.round((Date.UTC(+b.slice(0,4),+b.slice(5,7)-1,+b.slice(8,10))-Date.UTC(+a.slice(0,4),+a.slice(5,7)-1,+a.slice(8,10)))/864e5)+1;
+function todayISO(){ const d=new Date(), p=(n)=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+const tipoOf=(u)=>{ const m=/^\/?([A-Za-zÀ-ÿ]+)/.exec((u||'').trim()); return m?m[1]:'(sem tipo)'; };
+
+// período: o mês vem do nome do arquivo (AAAA-MM-detalhado / AAAA-MM-agrupado)
+function sPeriod(name){
+  let m=/(\d{4})-(0[1-9]|1[0-2])(?=-(?:agrupado|detalhado))/i.exec(name);
+  let start,end,source,tok=null,idx=-1;
+  if(m){
+    const y=+m[1], mo=+m[2];
+    start=m[1]+'-'+m[2]+'-01';
+    end=m[1]+'-'+m[2]+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0');
+    source='nome'; tok=m[1]+'-'+m[2]; idx=m.index;
+  }else return null;
+  const today=todayISO();
+  let effEnd=end>today?today:end; if(effEnd<start) effEnd=start;
+  return {start,end,source,tok,idx,days:isoDays(start,end),effDays:isoDays(start,effEnd),partial:end>today,
+    label:brDate(start)+' a '+brDate(end)};
+}
+const sPerText=(p)=>p.label+' ('+p.days+(p.days===1?' dia':' dias')+')';
+
+function parseSerpro(text,name){
+  if(/\.zip$/i.test(name)||text.slice(0,2)==='PK') return {error:'Esse arquivo é um .zip. Aqui use um CSV de dentro dele; o .zip só funciona em Período livre.'};
+  text=text.replace(/^﻿/,'');
+  const lines=text.split(/\r?\n/);
+  const head=(lines[0]||'').trim().toLowerCase();
+  const out={byType:new Map(),bySvc:null,byDay:null,total:0,errors:null,unreadable:0,dups:0,other:0,first:null,last:null};
+  const nm=/(\d{4})-(0[1-9]|1[0-2])(?=-(?:agrupado|detalhado))/i.exec(name), mk=nm?(nm[1]+'-'+nm[2]):null;
+  const addType=(t,n,err)=>{ let o=out.byType.get(t); if(!o){ o={n:0,err:err==null?null:0}; out.byType.set(t,o); } o.n+=n; if(err!=null) o.err+=err; };
+  if(/^data,cnpj\/cpf,url,response_code/.test(head)){
+    out.kind='detalhado'; out.bySvc=new Map(); out.byDay=new Map(); out.errors=0;
+    const re=/^(\d{4}-\d{2}-\d{2}) \d{2}:\d{2}:\d{2}(?:\.\d+)?[-+]\d{4},([^,]*),([^,]*),(\d{3}),([^,]*),(.*?),([^,]*),([\d.]+),?$/;
+    const seen=new Set();
+    for(let i=1;i<lines.length;i++){
+      const l=lines[i].replace(/\s+$/,''); if(!l.trim()) continue;
+      const m=re.exec(l);
+      if(!m){ out.unreadable++; continue; }
+      if(seen.has(l)){ out.dups++; continue; }
+      seen.add(l);
+      const date=m[1];
+      if(mk&&date.slice(0,7)!==mk){ out.other++; continue; }
+      const q=parseFloat(m[8]), qty=isFinite(q)&&q>0?q:1, bad=+m[4]!==200?qty:0;
+      const sm=/"insumo-sufixo"\s*:\s*"([^"]*)"/.exec(m[6]);
+      const svc=sm?sm[1]:'', tipo=svc?tipoOf(svc):tipoOf(m[3]);
+      const sname=svc?svc.replace(/^\/[^/]+\//,''):'(não informado)';
+      out.total+=qty; out.errors+=bad;
+      addType(tipo,qty,bad);
+      let s=out.bySvc.get(sname); if(!s){ s={n:0,err:0,tipo}; out.bySvc.set(sname,s); } s.n+=qty; s.err+=bad;
+      let d=out.byDay.get(date); if(!d){ d={n:0,err:0}; out.byDay.set(date,d); } d.n+=qty; d.err+=bad;
+      if(!out.first||date<out.first) out.first=date;
+      if(!out.last||date>out.last) out.last=date;
+    }
+    if(!out.total) return {error:mk?('Não encontrei nenhuma chamada de '+mk.split('-').reverse().join('/')+' neste arquivo.'):'Não encontrei nenhuma chamada legível neste arquivo.'};
+    return out;
+  }
+  if(/^url,total/.test(head)){
+    out.kind='agrupado';
+    for(let i=1;i<lines.length;i++){
+      const l=lines[i].trim(); if(!l) continue;
+      const m=/^([^,]+),(\d+)$/.exec(l);
+      if(!m){ out.unreadable++; continue; }
+      addType(tipoOf(m[1]),+m[2],null); out.total+=+m[2];
+    }
+    if(!out.total) return {error:'O arquivo agrupado não tem nenhuma linha de total legível.'};
+    return out;
+  }
+  return {error:'Este arquivo não parece ser um relatório do Serpro. Use o CSV "detalhado" (colunas DATA, CNPJ/CPF, URL, RESPONSE_CODE...) ou o "agrupado" (colunas URL, TOTAL).'};
+}
+async function readS(file,errFn){
+  if(!file||!SESSION) return null;
+  if(file.size>CFG.maxBytes){ errFn('O arquivo tem mais de 4 MB, então não parece um relatório do Serpro.'); return null; }
+  let text;
+  try{ text=await file.text(); }catch(e){ errFn('Não consegui ler o arquivo. Tente exportar de novo e subir outra vez.'); return null; }
+  const d=parseSerpro(text,file.name);
+  if(d.error){ errFn(d.error); return null; }
+  const per=sPeriod(file.name);
+  if(!per){ errFn('Não consegui identificar o mês no nome do arquivo. O nome precisa ter AAAA-MM antes de "agrupado" ou "detalhado" (por exemplo, relatorio-...-2026-10-detalhado-...csv).'); return null; }
+  return {name:file.name,per,data:d};
+}
+
+/* ---- ler .zip no navegador (sem biblioteca): central directory + DecompressionStream ---- */
+async function inflateRaw(bytes,limit){
+  const ds=new DecompressionStream('deflate-raw'), rd=ds.readable.getReader(), chunks=[]; let n=0;
+  const reading=(async()=>{ for(;;){ const r=await rd.read(); if(r.done) break; n+=r.value.length; if(n>limit){ try{ rd.cancel(); }catch(e){} throw new Error('TOOBIG'); } chunks.push(r.value); } })();
+  const wr=ds.writable.getWriter();
+  wr.write(bytes).catch(()=>{}); wr.close().catch(()=>{});
+  await reading;
+  const out=new Uint8Array(n); let o=0; chunks.forEach((c)=>{ out.set(c,o); o+=c.length; });
+  return out;
+}
+// devolve [{name,text}] com os .csv do zip; erros viram Error com mensagem em português
+async function unzipCsvs(file){
+  if(typeof DecompressionStream==='undefined') throw new Error('Este navegador não consegue abrir .zip. Extraia o zip e suba os CSVs.');
+  const buf=new Uint8Array(await file.arrayBuffer()), dv=new DataView(buf.buffer,buf.byteOffset,buf.byteLength);
+  let eocd=-1;
+  for(let i=buf.length-22;i>=Math.max(0,buf.length-22-65535);i--){ if(dv.getUint32(i,true)===0x06054b50){ eocd=i; break; } }
+  if(eocd<0) throw new Error('Não consegui ler o .zip (arquivo danificado ou incompleto).');
+  const total=dv.getUint16(eocd+10,true); let p=dv.getUint32(eocd+16,true);
+  if(total===0xffff||p===0xffffffff) throw new Error('Este .zip é grande demais (formato ZIP64). Extraia o zip e suba os CSVs.');
+  if(total>200) throw new Error('O .zip tem arquivos demais ('+total+'). Suba só os relatórios do Serpro.');
+  const out=[], dec=new TextDecoder('utf-8');
+  for(let i=0;i<total;i++){
+    if(p+46>buf.length||dv.getUint32(p,true)!==0x02014b50) throw new Error('Não consegui ler o .zip (arquivo danificado).');
+    const flags=dv.getUint16(p+8,true), method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), usize=dv.getUint32(p+24,true);
+    const nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    const name=dec.decode(buf.subarray(p+46,p+46+nl));
+    p+=46+nl+el+cl;
+    const base=name.split('/').pop();
+    if(!base||name.endsWith('/')||/^__MACOSX\//.test(name)||base.charAt(0)==='.'||!/\.csv$/i.test(base)) continue;
+    if(flags&1) throw new Error('O .zip tem senha. Extraia o zip e suba os CSVs.');
+    if(usize>CFG.maxBytes) throw new Error('O arquivo '+base+' dentro do zip é grande demais para ser um relatório do Serpro.');
+    if(lo+30>buf.length||dv.getUint32(lo,true)!==0x04034b50) throw new Error('Não consegui ler o .zip (arquivo danificado).');
+    const start=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true), data=buf.subarray(start,start+csize);
+    let bytes;
+    if(method===0) bytes=data;
+    else if(method===8){
+      try{ bytes=await inflateRaw(data,CFG.maxBytes); }
+      catch(e){ throw new Error(e&&e.message==='TOOBIG'?('O arquivo '+base+' dentro do zip é grande demais para ser um relatório do Serpro.'):'Não consegui descompactar '+base+' (arquivo danificado).'); }
+    }else throw new Error('O .zip usa um tipo de compressão que não consigo ler. Extraia o zip e suba os CSVs.');
+    out.push({name:base,text:dec.decode(bytes)});
+  }
+  if(!out.length) throw new Error('Não encontrei nenhum CSV dentro do .zip.');
+  return out;
+}
+
+/* ---- tabelas e gráfico ---- */
+function sTable(tbl,cols,rows,foot){
+  tbl.replaceChildren();
+  const th=h('thead'), hr=h('tr');
+  cols.forEach((c)=>hr.appendChild(h('th',c.n?'n':null,c.t,{scope:'col'})));
+  th.appendChild(hr); tbl.appendChild(th);
+  const tb=h('tbody');
+  rows.forEach((r)=>{ const tr=h('tr'); r.forEach((v,i)=>{ if(v instanceof Node) tr.appendChild(v); else tr.appendChild(h('td',cols[i].n?'n':null,v)); }); tb.appendChild(tr); });
+  tbl.appendChild(tb);
+  if(foot){ const tf=h('tfoot'), fr=h('tr'); foot.forEach((v,i)=>fr.appendChild(h('td',cols[i].n?'n':null,v))); tf.appendChild(fr); tbl.appendChild(tf); }
+}
+const sorted=(map,fn)=>[...map.entries()].sort((a,b)=>(fn(b[1])-fn(a[1]))||String(a[0]).localeCompare(String(b[0]),'pt-BR'));
+function dayChart(box,r){
+  box.replaceChildren();
+  const d=r.data, per=r.per, today=todayISO();
+  const endShow=per.end>today?today:per.end;
+  const days=[]; 
+  for(let t=Date.UTC(+per.start.slice(0,4),+per.start.slice(5,7)-1,+per.start.slice(8,10)); ; t+=864e5){
+    const dt=new Date(t), iso=dt.getUTCFullYear()+'-'+String(dt.getUTCMonth()+1).padStart(2,'0')+'-'+String(dt.getUTCDate()).padStart(2,'0');
+    if(iso>endShow) break; days.push(iso); if(days.length>400) break;
+  }
+  if(!days.length){ box.appendChild(h('p','hint','Ainda não há dias para mostrar neste período.')); return; }
+  const vals=days.map((x)=>(d.byDay.get(x)||{n:0}).n), max=Math.max.apply(null,vals.concat([1]));
+  const peak=days[vals.indexOf(Math.max.apply(null,vals))];
+  const ch=h('div','dchart',null,{role:'img','aria-label':'Chamadas por dia de '+brDate(days[0])+' a '+brDate(days[days.length-1])+'. Maior dia: '+brDate(peak)+' com '+fmtInt(Math.max.apply(null,vals))+' chamadas.'});
+  days.forEach((x,i)=>{
+    const col=h('div','dbar'); const bar=h('i',vals[i]?null:'z',null,{'data-tip':brDate(x)+': '+fmtInt(vals[i])+(vals[i]===1?' chamada':' chamadas')});
+    bar.style.height=(vals[i]/max*100)+'%'; col.appendChild(bar); ch.appendChild(col);
+  });
+  box.appendChild(ch);
+  const ax=h('div','dax'); ax.append(h('span',null,brDate(days[0]).slice(0,5)),h('span',null,'Maior dia: '+brDate(peak).slice(0,5)+' ('+fmtInt(Math.max.apply(null,vals))+')'),h('span',null,brDate(days[days.length-1]).slice(0,5)));
+  box.appendChild(ax);
+}
+function periodBanner(per,name,labelEl,valEl,srcEl,box){
+  box.classList.remove('missing');
+  valEl.textContent='De '+brDate(per.start)+' até '+brDate(per.end);
+  srcEl.replaceChildren();
+  const n=per.days+(per.days===1?' dia':' dias');
+  if(per.source==='nome'&&name&&per.idx>=0){
+    srcEl.append(document.createTextNode(n+', lidos do mês no nome do arquivo: '+(per.idx>0?'…':'')));
+    srcEl.appendChild(h('strong','fn-period',per.tok));
+    srcEl.append(document.createTextNode(name.slice(per.idx+per.tok.length)));
+  }else srcEl.append(document.createTextNode(n+'.'));
+}
+
+/* ---- Serpro: período livre (salvo no SharePoint) ---- */
+function setSFSrc(text,showRefresh){ $('#sfSrcText').textContent=text||''; $('#sfRefresh').hidden=!showRefresh; }
+function sfSrcText(){
+  const n=SLIST.length; if(!n) return '';
+  let t=n+(n===1?' relatório do Serpro salvo no SharePoint.':' relatórios do Serpro salvos no SharePoint.');
+  if(SFREE) t+=' Exibindo '+SFREE.name+', enviado em '+fmtDateTime(SFREE.item.createdDateTime)+'.';
+  return t;
+}
+function sNotes(d,per,kind){
+  const n=[];
+  if(d.kind==='agrupado') n.push('Arquivo agrupado: traz só o total por tipo de chamada. Para ver por serviço e por dia, suba o arquivo detalhado do mesmo mês.');
+  if(d.unreadable) n.push(fmtInt(d.unreadable)+(d.unreadable===1?' linha estava cortada ou ilegível e foi ignorada.':' linhas estavam cortadas ou ilegíveis e foram ignoradas.'));
+  if(d.dups) n.push(fmtInt(d.dups)+(d.dups===1?' linha repetida (idêntica) foi contada uma vez só.':' linhas repetidas (idênticas) foram contadas uma vez só.'));
+  if(d.other) n.push(fmtInt(d.other)+(d.other===1?' chamada de outro mês, que o arquivo traz junto, ficou de fora.':' chamadas de outros meses, que o arquivo traz junto, ficaram de fora.'));
+  if(per.partial) n.push('Mês em andamento: a média por dia considera os '+per.effDays+' dias até hoje.');
+  return n;
+}
+function sKpis(box,r){
+  const d=r.data, per=r.per;
+  const det=d.kind==='detalhado';
+  const items=[
+    {v:per.days+(per.days===1?' dia':' dias'),l:'Duração',s:per.partial?('até hoje: '+per.effDays+' dias'):'dias corridos, contando o primeiro e o último'},
+    {v:fmtInt(d.total),l:'Chamadas',s:fmtInt(d.total/per.effDays)+' por dia'},
+    {v:det?fmtInt(d.total-d.errors):'—',l:'Com sucesso',s:det?(d.total?nf({maximumFractionDigits:1}).format((d.total-d.errors)/d.total*100)+'% das chamadas (resposta 200)':''):'não informado no arquivo agrupado'},
+    {v:det?fmtInt(d.errors):'—',l:'Com erro',s:det?'resposta diferente de 200':'não informado no arquivo agrupado'},
+    {v:det?fmtInt(d.bySvc.size):fmtInt(d.byType.size),l:det?'Serviços usados':'Tipos de chamada',s:det?(fmtInt(d.byType.size)+' tipos'):''}
+  ];
+  kpiRow(box,items,'');
+}
+function renderSFree(){
+  const has=!!SFREE;
+  $('#sfPanel').hidden=!has; $('#sfTypeSec').hidden=!has;
+  $('#sfDaySec').hidden=!(has&&SFREE.data.kind==='detalhado'); $('#sfSvcSec').hidden=!(has&&SFREE.data.kind==='detalhado');
+  $('#sfDrop').classList.toggle('compact',has);
+  $('#sfTitle').textContent=has?'Subir um novo relatório (.csv)':SFREE_TITLE;
+  $('#sfSub').textContent=has?'Clique ou solte um arquivo para salvar no SharePoint. O período vem do mês no nome do arquivo.':SFREE_SUB;
+  if(!has) return;
+  const r=SFREE, d=r.data, per=r.per, det=d.kind==='detalhado';
+  periodBanner(per,r.name,null,$('#sfPeriodVal'),$('#sfPeriodSrc'),$('#sfPeriod'));
+  if(det&&d.first) $('#sfPeriodSrc').appendChild(document.createTextNode(' Chamadas registradas de '+brDate(d.first)+' a '+brDate(d.last)+'.'));
+  const nl=$('#sfNotes'); nl.replaceChildren(); const notes=sNotes(d,per); notes.forEach((t)=>nl.appendChild(h('li',null,t))); nl.hidden=!notes.length;
+  sKpis($('#sfKpis'),r);
+  const tot=d.total;
+  sTable($('#sfType'),[{t:'Tipo'},{t:'Chamadas',n:1},{t:'% do total',n:1},{t:'Por dia',n:1},{t:'Com erro',n:1}],
+    sorted(d.byType,(o)=>o.n).map((e)=>[e[0],fmtInt(e[1].n),fmtPct(e[1].n/tot),nf1(e[1].n/per.effDays),e[1].err==null?'—':fmtInt(e[1].err)]),
+    ['Total',fmtInt(tot),'100%',nf1(tot/per.effDays),det?fmtInt(d.errors):'—']);
+  if(!det) return;
+  sTable($('#sfSvc'),[{t:'Serviço'},{t:'Tipo'},{t:'Chamadas',n:1},{t:'% do total',n:1},{t:'Com erro',n:1}],
+    sorted(d.bySvc,(o)=>o.n).map((e)=>[e[0],e[1].tipo,fmtInt(e[1].n),fmtPct(e[1].n/tot),fmtInt(e[1].err)]),
+    ['Total','',fmtInt(tot),'100%',fmtInt(d.errors)]);
+  dayChart($('#sfDays'),r);
+  sTable($('#sfTop'),[{t:'Dia'},{t:'Chamadas',n:1},{t:'Com erro',n:1}],
+    sorted(d.byDay,(o)=>o.n).slice(0,5).map((e)=>[brDate(e[0]),fmtInt(e[1].n),fmtInt(e[1].err)]));
+}
+async function showSavedS(r){
+  let d=SREPCACHE.get(r.item.id);
+  if(!d){
+    setSFSrc('Lendo '+r.name+'...',false);
+    d=parseSerpro(await downloadText(r.item),r.name);
+    if(!SESSION) return false;
+    if(d.error){
+      SFREE=null; SFREE_ID=r.item.id; renderSFree();
+      setErr('#sfErr','O arquivo '+r.name+' não é um relatório do Serpro válido. '+d.error);
+      return false;
+    }
+    SREPCACHE.set(r.item.id,d);
+  }
+  if(!SESSION) return false;
+  const per=sPeriod(r.name);
+  if(!per){ SFREE=null; setErr('#sfErr','Não consegui identificar o mês no nome de '+r.name+'.'); renderSFree(); return false; }
+  setErr('#sfErr','');
+  SFREE={name:r.name,per,data:d,item:r.item}; SFREE_ID=r.item.id;
+  renderSFree(); syncView();
+  return true;
+}
+async function loadSerproList(force){
+  if(loadingS||!SESSION) return;
+  loadingS=true; setErr('#sfErr','');
+  try{
+    setSFSrc('Buscando os relatórios do Serpro no SharePoint...',false);
+    let items=[];
+    try{ items=await listReports(CFG.serpro); }catch(e){ if(e.status!==404) throw e; }
+    if(!SESSION) return;
+    const now=Date.now();
+    sExtra=sExtra.filter((x)=>now-x.ts<RECENT_MS);
+    sExtra.forEach((x)=>{ if(!items.some((i)=>i.id===x.item.id)) items.push(x.item); });
+    SLIST=items.map((it)=>({item:it,name:stripStamp(it.name)}))
+      .sort((a,b)=>(new Date(b.item.createdDateTime)-new Date(a.item.createdDateTime))||b.item.name.localeCompare(a.item.name));
+    const pick=SLIST[0]||null;   // sempre o mais recente
+    if(!pick){
+      SFREE=null; SFREE_ID=null; renderSFree(); syncView();
+      setSFSrc(isAdmin()?SFREE_NONE+' Suba o primeiro para começar.':SFREE_NONE+' Peça a um Administrador para subir o primeiro.',true);
+      return;
+    }
+    await showSavedS(pick);
+    if(!SESSION) return;
+    const chk=force?'':(' Verificado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.');
+    setSFSrc(sfSrcText()+chk,true);
+  }catch(e){
+    console.error(e);
+    setErr('#sfErr',friendly(e));
+    setSFSrc('',true);
+  }finally{ loadingS=false; if(view==='home'&&SESSION) renderHome(); }
+}
+// valida um texto de relatório; devolve {name,text,per,data} ou {name,why}
+function checkS(name,text){
+  const d=parseSerpro(text,name);
+  if(d.error) return {name,why:d.error};
+  const per=sPeriod(name);
+  if(!per) return {name,why:'o nome não traz o mês (AAAA-MM antes de "agrupado" ou "detalhado")'};
+  return {name,text,per,data:d};
+}
+const byteLen=(t)=>new TextEncoder().encode(t).length;
+async function loadSFree(files){
+  setErr('#sfErr','');
+  files=(files||[]).filter(Boolean);
+  if(!files.length||!SESSION||view!=='sfree') return;
+  if(!isAdmin()){ setErr('#sfErr','Só Administradores podem subir relatórios.'); return; }
+  const cands=[], bad=[];
+  setSFSrc('Lendo os arquivos...',false);
+  try{
+    for(const f of files){
+      if(f.size>(/\.zip$/i.test(f.name)?10*1024*1024:CFG.maxBytes)){ bad.push({name:f.name,why:'arquivo grande demais para ser um relatório do Serpro'}); continue; }
+      if(/\.zip$/i.test(f.name)){ (await unzipCsvs(f)).forEach((x)=>cands.push(x)); }
+      else{
+        let text; try{ text=await f.text(); }catch(e){ bad.push({name:f.name,why:'não consegui ler o arquivo'}); continue; }
+        cands.push({name:f.name,text});
+      }
+    }
+  }catch(e){ setErr('#sfErr',e.message||'Não consegui ler o arquivo.'); setSFSrc(sfSrcText(),true); return; }
+  if(!SESSION||view!=='sfree') return;
+  const ok=[]; cands.forEach((c)=>{ const r=checkS(c.name,c.text); if(r.why) bad.push(r); else ok.push(r); });
+  // do mês mais antigo para o mais novo, agrupado antes do detalhado: o último a ser salvo é o detalhado do mês mais recente
+  ok.sort((x,y)=>(x.per.tok<y.per.tok?-1:x.per.tok>y.per.tok?1:0)||((x.data.kind==='agrupado'?0:1)-(y.data.kind==='agrupado'?0:1))||x.name.localeCompare(y.name));
+  const have=new Map(SLIST.map((r)=>[r.name,r.item.size]));
+  // o último do lote é sempre salvo (vira o exibido); os demais só se ainda não estiverem salvos com o mesmo tamanho
+  const todo=ok.filter((r,i)=>i===ok.length-1||have.get(r.name)!==byteLen(r.text)), already=ok.length-todo.length;
+  if(!ok.length){
+    setErr('#sfErr',bad.length===1?bad[0].why.charAt(0).toUpperCase()+bad[0].why.slice(1):'Nenhum arquivo do Serpro válido foi encontrado. '+bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; '));
+    setSFSrc(sfSrcText(),true); return;
+  }
+  let saved=0, failMsg='';
+  for(const r of todo){
+    setSFSrc('Salvando no SharePoint... '+(saved+1)+' de '+todo.length,false);
+    try{
+      const file=new File([r.text],r.name,{type:'text/csv'});
+      const res=await saveReport(file,CFG.serpro);
+      SREPCACHE.set(res.id,r.data);
+      sExtra.push({ts:Date.now(),item:{id:res.id,name:res.name||(stamp()+'_'+safeName(r.name)),createdDateTime:res.createdDateTime||new Date().toISOString(),size:byteLen(r.text),file:{}}});
+      saved++;
+    }catch(e){ console.error(e); failMsg='Não consegui salvar '+r.name+' no SharePoint: '+friendly(e); break; }
+    if(!SESSION) return;
+  }
+  loadingS=false;
+  if(saved) await loadSerproList(true);
+  if(!SESSION) return;
+  const parts=[];
+  if(saved) parts.push(saved===1?'1 relatório salvo no SharePoint.':saved+' relatórios salvos no SharePoint.');
+  if(already) parts.push(already===1?'1 já estava salvo e foi pulado.':already+' já estavam salvos e foram pulados.');
+  if(bad.length) parts.push(bad.length+(bad.length===1?' arquivo ignorado':' arquivos ignorados')+' ('+bad.slice(0,3).map((x)=>x.name+': '+x.why).join('; ')+(bad.length>3?'; ...':'')+').');
+  if(failMsg) setErr('#sfErr',failMsg+(saved?' Os anteriores foram salvos.':' Nada foi alterado.'));
+  else if(bad.length) setErr('#sfErr',parts.join(' '));
+  if(parts.length) $('#sfSrcText').textContent=parts.join(' ')+' '+$('#sfSrcText').textContent;
+}
+function resetSerpro(){
+  SFREE=null; SLIST=[]; SFREE_ID=null; SCMP={A:null,B:null}; scmpMode='total'; sExtra=[]; SREPCACHE.clear();
+  setErr('#sfErr',''); setErr('#scmpErr',''); setSFSrc('',false);
+  $('#sfPanel').hidden=true; $('#sfTypeSec').hidden=true; $('#sfDaySec').hidden=true; $('#sfSvcSec').hidden=true; $('#scmpOut').hidden=true;
+  $('#sfDrop').classList.remove('compact');
+  $('#sfTitle').textContent=SFREE_TITLE; $('#sfSub').textContent=SFREE_SUB;
+  ['#sfKpis','#sfType','#sfSvc','#sfDays','#sfTop','#sGTbl','#sTTbl','#sSTbl','#homeGrid'].forEach((s)=>{ const el=$(s); if(el) el.replaceChildren(); });
+  $('#homeSrc').textContent=''; $('#homeNote').textContent='';
+  sSlotUI('A'); sSlotUI('B');
+}
+
+/* ---- Serpro: comparar arquivos (temporário) ---- */
+async function loadSSlot(which,file){
+  setErr('#scmpErr','');
+  const r=await readS(file,(t)=>setErr('#scmpErr','Arquivo '+which+': '+t));
+  if(!r||!SESSION||view!=='scmp') return;
+  SCMP[which]=r; renderSCmp();
+}
+function sSlotUI(which){
+  const r=SCMP[which], el=$('#sslot'+which);
+  el.classList.toggle('compact',!!r);
+  $('#sslot'+which+'Title').textContent=r?r.name:('Arquivo '+which+(which==='A'?' (base)':' (comparado)'));
+  $('#sslot'+which+'Sub').textContent=r?(sPerText(r.per)+', '+fmtInt(r.data.total)+' chamadas. Clique ou solte outro arquivo para trocar.'):'Solte aqui ou clique para escolher o relatório do Serpro (.csv).';
+}
+function sCmpTable(tbl,head,groups,fa,fb,fq){
+  const list=groups.slice().sort((x,y)=>((y.b?y.b.n:0)*fb-(x.b?x.b.n:0)*fb)||((y.a?y.a.n:0)*fa-(x.a?x.a.n:0)*fa)||String(x.key).localeCompare(String(y.key),'pt-BR'));
+  let ta=0,tb=0;
+  const dc=(a,b)=>{ const td=h('td','n'); td.appendChild(a||b?deltaEl(b,a,fq,true):h('span','flat','—')); return td; };
+  const rows=list.map((o)=>{ const a=(o.a?o.a.n:0)*fa, b=(o.b?o.b.n:0)*fb; ta+=a; tb+=b; return [o.key,fq(a),fq(b),dc(a,b)]; });
+  sTable(tbl,[{t:head},{t:'Chamadas A',n:1},{t:'Chamadas B',n:1},{t:'Variação',n:1}],rows);
+  const tf=h('tfoot'), fr=h('tr'); fr.append(h('td',null,'Total'),h('td','n',fq(ta)),h('td','n',fq(tb)),dc(ta,tb)); tf.appendChild(fr); tbl.appendChild(tf);
+}
+function sGroups(mapA,mapB){
+  const m=new Map();
+  [['a',mapA],['b',mapB]].forEach((p)=>{ if(p[1]) p[1].forEach((v,k)=>{ let o=m.get(k); if(!o){ o={key:k,a:null,b:null}; m.set(k,o); } o[p[0]]=v; }); });
+  return [...m.values()];
+}
+function renderSCmp(){
+  sSlotUI('A'); sSlotUI('B');
+  const A=SCMP.A, B=SCMP.B; $('#scmpOut').hidden=!(A&&B);
+  if(!(A&&B)) return;
+  const a=A.data, b=B.data, da=A.per.effDays, db=B.per.effDays;
+  const notes=[];
+  if(A.per.days!==B.per.days) notes.push('Os períodos têm tamanhos diferentes (A: '+A.per.days+' dias, B: '+B.per.days+' dias). Compare os valores por dia.');
+  const ov=overlapDays(A.per,B.per);
+  if(ov>0) notes.push('Os períodos se sobrepõem em '+ov+(ov===1?' dia':' dias')+': parte das chamadas aparece nos dois arquivos.');
+  if(A.per.partial||B.per.partial) notes.push('Há mês em andamento: os valores por dia consideram só os dias até hoje.');
+  if(a.kind!==b.kind) notes.push('Um arquivo é agrupado e o outro detalhado: só dá para comparar os totais por tipo.');
+  else if(a.kind==='agrupado') notes.push('Arquivos agrupados: só dá para comparar os totais por tipo. Com os detalhados, o comparativo também mostra por serviço.');
+  const wn=$('#scmpNotes'); wn.replaceChildren(); notes.forEach((t)=>wn.appendChild(h('li',null,t))); wn.hidden=!notes.length;
+
+  const mb=$('#scmpMode'); mb.replaceChildren();
+  [['total','Totais do período'],['day','Por dia']].forEach((m)=>{
+    const bt=h('button',null,m[1],{type:'button','aria-pressed':String(scmpMode===m[0])});
+    bt.addEventListener('click',()=>{ scmpMode=m[0]; renderSCmp(); });
+    mb.appendChild(bt);
+  });
+  const day=scmpMode==='day', fa=day?1/da:1, fb=day?1/db:1, fq=day?nf1:fmtInt;
+  $('#scmpHint').textContent=(day?'Valores por dia, ':'Valores totais de cada período, ')+'ordenados pelo maior número de chamadas do arquivo B. Variação de B contra A.';
+
+  const g=$('#sGTbl'); g.replaceChildren();
+  const hr=h('tr'); [['Indicador',0],['A: '+sPerText(A.per),1],['B: '+sPerText(B.per),1],['Variação (B contra A)',1]].forEach((c)=>hr.appendChild(h('th',c[1]?'n':null,c[0],{scope:'col'})));
+  const th=h('thead'); th.appendChild(hr); g.appendChild(th);
+  const tb=h('tbody');
+  const line=(label,x,y,fmt,noDelta)=>{
+    const tr=h('tr'); tr.appendChild(h('td',null,label));
+    tr.appendChild(h('td','n',x==null?'—':fmt(x))); tr.appendChild(h('td','n',y==null?'—':fmt(y)));
+    const td=h('td','n'); if(noDelta) td.appendChild(h('span','flat','—')); else td.appendChild(deltaEl(y,x,fmt,true)); tr.appendChild(td); tb.appendChild(tr);
+  };
+  line('Duração (dias)',A.per.days,B.per.days,fmtInt,true);
+  line('Chamadas',a.total,b.total,fmtInt);
+  line('Chamadas por dia',a.total/da,b.total/db,nf1);
+  line('Com erro (resposta diferente de 200)',a.errors,b.errors,fmtInt);
+  line('Tipos de chamada',a.byType.size,b.byType.size,fmtInt,true);
+  line('Serviços usados',a.bySvc?a.bySvc.size:null,b.bySvc?b.bySvc.size:null,fmtInt,true);
+  g.appendChild(tb);
+
+  sCmpTable($('#sTTbl'),'Tipo',sGroups(a.byType,b.byType),fa,fb,fq);
+  const both=a.kind==='detalhado'&&b.kind==='detalhado';
+  $('#sSvcSec').hidden=!both;
+  if(both) sCmpTable($('#sSTbl'),'Serviço',sGroups(a.bySvc,b.bySvc),fa,fb,fq);
+}
+
+/* ---- Visão geral ---- */
+function homePanel(title,go,body){
+  const p=h('section','panel'); p.setAttribute('aria-label',title);
+  const hd=h('div','phead'); hd.appendChild(h('h2',null,title));
+  const bt=h('button','ghost','Abrir',{type:'button'}); bt.addEventListener('click',()=>setView(go)); hd.appendChild(bt);
+  p.appendChild(hd); body(p); return p;
+}
+function homePeriod(p,per,name,tokName){
+  const bx=h('div','period'), v=h('div','pval'), s=h('p','hint');
+  bx.append(h('div','plabel','Período do relatório'),v,s); p.appendChild(bx);
+  return {bx,v,s};
+}
+function renderHome(){
+  const grid=$('#homeGrid'); grid.replaceChildren();
+  const busy=loadingFree||loadingS;
+  // Claude
+  grid.appendChild(homePanel('Claude (gasto em dólar)','free',(p)=>{
+    if(!FREE){
+      p.appendChild(h('p','hint',busy?'Buscando o relatório no SharePoint...':($('#freeErr').hidden?(isAdmin()?'Ainda não há relatório do Claude salvo. Suba o primeiro em Claude, Período livre.':'Ainda não há relatório do Claude salvo. Peça a um Administrador para subir o primeiro.'):$('#freeErr').textContent)));
+      return;
+    }
+    const d=FREE.data, per=FREE.per, bx=homePeriod(p);
+    if(per){ bx.v.textContent='De '+brDate(per.start)+' até '+brDate(per.end); bx.s.textContent=per.days+(per.days===1?' dia':' dias')+', lidos do final do nome do arquivo.'; }
+    else { bx.bx.classList.add('missing'); bx.v.textContent='Não identificado'; bx.s.textContent='O nome do arquivo não traz o período.'; }
+    const top=agg(d.rows,(r)=>r.email).sort((a,b)=>(b.net-a.net)||(b.req-a.req))[0];
+    const k=h('div','kpis'); p.appendChild(k);
+    kpiRow(k,[
+      {v:fmtUSD(d.totalNet),l:'Gasto líquido',s:per?(fmtUSD(d.totalNet/per.days)+' por dia'):''},
+      {v:fmtInt(d.req),l:'Requisições',s:per?(fmtInt(d.req/per.days)+' por dia'):''},
+      {v:fmtInt(d.active),l:'Membros com uso',s:'de '+fmtInt(d.members)+' no arquivo'},
+      {v:top?nameOf(top.key):'—',l:'Maior gasto',s:top?fmtUSD(top.net):''}
+    ],'');
+    p.appendChild(h('p','hint',FREE.name+', enviado em '+fmtDateTime(FREE.item.createdDateTime)+'.'));
+  }));
+  // Serpro
+  grid.appendChild(homePanel('Serpro (chamadas)','sfree',(p)=>{
+    if(!SFREE){
+      p.appendChild(h('p','hint',busy?'Buscando o relatório no SharePoint...':($('#sfErr').hidden?(isAdmin()?'Ainda não há relatório do Serpro salvo. Suba o primeiro em Serpro, Período livre.':'Ainda não há relatório do Serpro salvo. Peça a um Administrador para subir o primeiro.'):$('#sfErr').textContent)));
+      return;
+    }
+    const d=SFREE.data, per=SFREE.per, bx=homePeriod(p);
+    periodBanner(per,SFREE.name,null,bx.v,bx.s,bx.bx);
+    const k=h('div','kpis'); p.appendChild(k);
+    const bt=sorted(d.byType,(o)=>o.n)[0];
+    kpiRow(k,[
+      {v:fmtInt(d.total),l:'Chamadas',s:fmtInt(d.total/per.effDays)+' por dia'},
+      {v:d.errors==null?'—':fmtInt(d.errors),l:'Com erro',s:d.errors==null?'não informado no agrupado':'resposta diferente de 200'},
+      {v:bt?bt[0]:'—',l:'Tipo mais usado',s:bt?(fmtInt(bt[1].n)+' chamadas ('+fmtPct(bt[1].n/d.total)+')'):''},
+      {v:d.bySvc?fmtInt(d.bySvc.size):fmtInt(d.byType.size),l:d.bySvc?'Serviços usados':'Tipos de chamada',s:''}
+    ],'');
+    p.appendChild(h('p','hint',SFREE.name+', enviado em '+fmtDateTime(SFREE.item.createdDateTime)+'.'));
+  }));
+  const diff=FREE&&FREE.per&&SFREE&&(FREE.per.start!==SFREE.per.start||FREE.per.end!==SFREE.per.end);
+  $('#homeNote').textContent='O Claude é medido em dólar e o Serpro em chamadas, por isso os dois não são somados. Cada painel mostra o relatório mais recente salvo no SharePoint.'+(diff?' Atenção: os períodos dos dois relatórios são diferentes.':'');
+  $('#homeSrc').textContent=busy?'Buscando os relatórios no SharePoint...':'';
+}
+
 /* ---------- eventos ---------- */
 $('#file').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadFile(f); });
 $('#product').addEventListener('change',(e)=>{ state.product=e.target.value; render(); });
@@ -2407,6 +3003,8 @@ window.addEventListener('drop',(e)=>{
   e.preventDefault(); drop.classList.remove('over');
   const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
   if(view==='free') loadFree(f);
+  else if(view==='sfree') loadSFree(Array.from((e.dataTransfer&&e.dataTransfer.files)||[]));
+  else if(view==='scmp'){ const t=e.target.closest&&e.target.closest('#sslotA,#sslotB'); loadSSlot(t?t.id.slice(-1):(!SCMP.A?'A':'B'),f); }
   else if(view==='cmp'){ const t=e.target.closest&&e.target.closest('#slotA,#slotB'); loadSlot(t?t.id.slice(-1):(!CMP.A?'A':'B'),f); }
   else loadFile(f);
 });
@@ -2439,9 +3037,20 @@ $('#logout').addEventListener('click',logout);
 $('#refresh').addEventListener('click',()=>loadLatest(false));
 $('#usersBtn').addEventListener('click',()=>setView('users'));
 $('#navDash').addEventListener('click',()=>setView('dash'));
+$('#navHome').addEventListener('click',()=>setView('home'));
+$('#navSFree').addEventListener('click',()=>setView('sfree'));
+$('#navSCmp').addEventListener('click',()=>setView('scmp'));
+$('#grpClaude').addEventListener('click',()=>setGroup('Claude',$('#grpClaude').getAttribute('aria-expanded')!=='true'));
+$('#grpSerpro').addEventListener('click',()=>setGroup('Serpro',$('#grpSerpro').getAttribute('aria-expanded')!=='true'));
 $('#navFree').addEventListener('click',()=>setView('free'));
 $('#navCmp').addEventListener('click',()=>setView('cmp'));
 $('#freeRefresh').addEventListener('click',()=>loadFreeList(false));
+$('#sfRefresh').addEventListener('click',()=>loadSerproList(false));
+$('#homeRefresh').addEventListener('click',()=>{ loadFreeList(false); loadSerproList(false); });
+$('#sfFile').addEventListener('change',(e)=>{ const fs=Array.from(e.target.files||[]); e.target.value=''; loadSFree(fs); });
+$('#sfileA').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadSSlot('A',f); });
+$('#sfileB').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadSSlot('B',f); });
+$('#scmpSwap').addEventListener('click',()=>{ const t=SCMP.A; SCMP.A=SCMP.B; SCMP.B=t; renderSCmp(); });
 $('#freeFile').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadFree(f); });
 $('#fileA').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadSlot('A',f); });
 $('#fileB').addEventListener('change',(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; loadSlot('B',f); });
@@ -2453,7 +3062,7 @@ $('#cmpSwap').addEventListener('click',()=>{ const t=CMP.A; CMP.A=CMP.B; CMP.B=t
 const sideEl=$('#side'), menuBtn=$('#menuBtn');
 function setMenu(open){ sideEl.classList.toggle('open',open); menuBtn.setAttribute('aria-expanded',String(open)); }
 menuBtn.addEventListener('click',()=>setMenu(!sideEl.classList.contains('open')));
-sideEl.addEventListener('click',(e)=>{ if(e.target.closest&&e.target.closest('.nav-item')) setMenu(false); });
+sideEl.addEventListener('click',(e)=>{ if(e.target.closest&&e.target.closest('.nav-item')&&!e.target.closest('.nav-group-btn')) setMenu(false); });
 document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'&&sideEl.classList.contains('open')){ setMenu(false); menuBtn.focus(); } });
 // logo: tenta o caminho antigo do repositório se o novo falhar; sem logo, mostra o nome
 [['#logoImg','#logoFb'],['#gateLogo','#gateFb']].forEach((p)=>{
